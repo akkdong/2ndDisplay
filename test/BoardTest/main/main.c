@@ -49,8 +49,8 @@ static const char *TAG = "main";
 #define TOUCH_INT_PIN          21
 #define TOUCH_I2C_SPEED_HZ     400000
 
-#define WIFI_SSID               "nauty24"
-#define WIFI_PASS               "homesweethome"
+#include "private.h"
+
 #define WIFI_CONNECTED_BIT      BIT0
 #define WIFI_FAIL_BIT           BIT1
 
