@@ -1,0 +1,9 @@
+[submodule "ref/arduinoVNC"]
+	path = ref/arduinoVNC
+	url = https://github.com/Links2004/arduinoVNC.git
+[submodule "ref/libvncserver"]
+	path = ref/libvncserver
+	url = https://github.com/LibVNC/libvncserver.git
+[submodule "ref/Virtual-Display-Driver"]
+	path = ref/Virtual-Display-Driver
+	url = https://github.com/itsmikethetech/Virtual-Display-Driver.git

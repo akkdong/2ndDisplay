@@ -1,0 +1,38 @@
+1. ESP-IDF 프로젝트에 Arduino 컴포넌트 추가하기
+idf.py add-dependency "espressif/arduino-esp32"
+
+
+2. CMakeLists.txt 설정 확인
+idf_component_register(SRCS "main.cpp"
+                       INCLUDE_DIRS "."
+                       REQUIRES arduino-esp32)
+					   
+					   
+3. C++ 소스 코드 작성법 (main.cpp)
+#include "Arduino.h"
+#include "HardwareSerial.h"
+
+extern "C" void app_main(void)
+{
+    // 1. Arduino 핵심 레이어 초기화 (필수)
+    initArduino();
+
+    // 2. HardwareSerial 초기화 (기본 콘솔 UART 0 사용)
+    // 매개변수: baudrate, config, rxPin, txPin
+    Serial.begin(115200);
+
+    while (true) {
+        // 3. Arduino 스타일 데이터 출력
+        Serial.println("Hello from ESP-IDF using Arduino Wrapper!");
+
+        // 4. 수신 데이터 처리 예시
+        if (Serial.available() > 0) {
+            char inChar = (char)Serial.read();
+            Serial.print("Received: ");
+            Serial.println(inChar);
+        }
+
+        // FreeRTOS 딜레이 (1초)
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}

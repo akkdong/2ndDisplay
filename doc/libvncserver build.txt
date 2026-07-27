@@ -1,0 +1,17 @@
+$ git clone https://github.com/LibVNC/libvncserver.git libvncserver 
+$
+$ cd libvncserver
+$
+$ mkdir build
+$ cd build
+$
+$
+$ cmake .. -G "Visual Studio 18 2026" -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake -DCMAKE_INSTALL_PREFIX=../install
+$ cmake --build . --config Debug (or Release)
+$ cmake --build . -DCMAKE_BUILD_TYPE=Debug (Linux)
+$
+$ cmake --install . --config Debug
+$
+$
+$ cmake --install build --config Release --prefix ../install/Release
+$
