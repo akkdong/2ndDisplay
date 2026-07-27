@@ -17,3 +17,8 @@ target_compile_options(
     PRIVATE
         -DLV_LVGL_H_INCLUDE_SIMPLE
 )
+
+idf_component_get_property(LVGL_PORT_LIB espressif__esp_lvgl_port COMPONENT_LIB)
+target_compile_options(${LVGL_PORT_LIB} INTERFACE -DCONFIG_LV_DRAW_SW_SUPPORT_RGB565_SWAPPED=1)
+
+idf_build_set_property(COMPILE_OPTIONS "-DCONFIG_LV_DRAW_SW_SUPPORT_RGB565_SWAPPED=0" APPEND)
