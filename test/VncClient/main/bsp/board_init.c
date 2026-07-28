@@ -20,35 +20,12 @@
 #include "esp_lcd_touch.h"
 #include "esp_lcd_touch_gt911.h"
 
+#include "board_defines.h"
 #include "board_init.h"
 
 static const char *TAG = "BSP";
 
-#define LCD_H_RES              480
-#define LCD_V_RES              800
-#define LCD_DPI_CLK_MHZ        34 // 25
 
-#define LCD_HSYNC              12  // 10
-#define LCD_HBP                42 // 40
-#define LCD_HFP                42 // 40
-#define LCD_VSYNC              2  // 4
-#define LCD_VBP                8  // 13
-#define LCD_VFP                166 // 2
-
-#define MIPI_DSI_LANE_NUM      2
-#define MIPI_DSI_LANE_RATE     1000
-
-#define MIPI_PHY_LDO_CHAN      3
-#define MIPI_PHY_LDO_MV       2500
-
-#define LCD_RST_PIN            5
-#define LCD_BK_LIGHT_PIN       23
-
-#define TOUCH_I2C_SDA_PIN      7
-#define TOUCH_I2C_SCL_PIN      8
-#define TOUCH_RST_PIN          22
-#define TOUCH_INT_PIN          21
-#define TOUCH_I2C_SPEED_HZ     400000
 
 #include "private.h"
 
@@ -104,6 +81,10 @@ static const st7701_lcd_init_cmd_t lcd_init_cmds[] = {
     {0x29, (uint8_t []){0x00}, 0, 20},
 };
 
+esp_lcd_panel_handle_t panel_handle = NULL;
+esp_lcd_touch_handle_t tp_handle = NULL;
+
+
 
 /// @brief 
 //
@@ -112,7 +93,14 @@ static const st7701_lcd_init_cmd_t lcd_init_cmds[] = {
 
 void bsp_init_gpio()
 {
-    ESP_LOGI(TAG, "Init LCD backlight pin");
+   
+
+}
+
+
+void bsp_init_lcd()
+{
+    ESP_LOGI(TAG, "[LCD] Init backlight pin");
     gpio_config_t bk_io_config = {
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = 1ULL << LCD_BK_LIGHT_PIN,
@@ -120,12 +108,7 @@ void bsp_init_gpio()
     ESP_ERROR_CHECK(gpio_config(&bk_io_config));
     gpio_set_level(LCD_BK_LIGHT_PIN, 0);
 
-}
-
-
-void bsp_init_lcd()
-{
-    ESP_LOGI(TAG, "Initializing MIPI DSI PHY power");
+    ESP_LOGI(TAG, "[LCD] Initializing MIPI DSI PHY power");
     esp_ldo_channel_handle_t ldo_mipi = NULL;
     esp_ldo_channel_config_t ldo_config = {
         .chan_id = MIPI_PHY_LDO_CHAN,
@@ -133,7 +116,7 @@ void bsp_init_lcd()
     };
     ESP_ERROR_CHECK(esp_ldo_acquire_channel(&ldo_config, &ldo_mipi));
 
-    ESP_LOGI(TAG, "Create MIPI DSI bus");
+    ESP_LOGI(TAG, "[LCD] Create MIPI DSI bus");
     esp_lcd_dsi_bus_handle_t dsi_bus = NULL;
     esp_lcd_dsi_bus_config_t bus_config = {
         .bus_id = 0,
@@ -142,7 +125,7 @@ void bsp_init_lcd()
     };
     ESP_ERROR_CHECK(esp_lcd_new_dsi_bus(&bus_config, &dsi_bus));
 
-    ESP_LOGI(TAG, "Create DBI IO");
+    ESP_LOGI(TAG, "[LCD] Create DBI IO");
     esp_lcd_panel_io_handle_t dbi_io = NULL;
     esp_lcd_dbi_io_config_t dbi_config = {
         .virtual_channel = 0,
@@ -151,8 +134,7 @@ void bsp_init_lcd()
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_dbi(dsi_bus, &dbi_config, &dbi_io));
 
-    ESP_LOGI(TAG, "Create ST7701 DPI panel");
-    esp_lcd_panel_handle_t panel = NULL;
+    ESP_LOGI(TAG, "[LCD] Create ST7701 DPI panel");
     esp_lcd_dpi_panel_config_t dpi_config = {
         .virtual_channel = 0,
         .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
@@ -184,18 +166,19 @@ void bsp_init_lcd()
         .bits_per_pixel = 16,
         .vendor_config = &vendor_config,
     };
-    ESP_ERROR_CHECK(esp_lcd_new_panel_st7701(dbi_io, &dev_config, &panel));
-    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel));
-    ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
-    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
+
+    ESP_ERROR_CHECK(esp_lcd_new_panel_st7701(dbi_io, &dev_config, &panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
     gpio_set_level(LCD_BK_LIGHT_PIN, 1);
 
-    ESP_LOGI(TAG, "LCD initialized");
+    ESP_LOGI(TAG, "[LCD] Initialized");
 }
 
 void bsp_init_touch()
 {
-    ESP_LOGI(TAG, "Initialize GT911 touch");
+    ESP_LOGI(TAG, "[TOUCH] Initialize GT911");
     i2c_master_bus_config_t i2c_bus_config = {
         .i2c_port = I2C_NUM_0,
         .sda_io_num = TOUCH_I2C_SDA_PIN,
@@ -230,7 +213,40 @@ void bsp_init_touch()
         },
         .driver_data = &tp_gt911_config,
     };
-    esp_lcd_touch_handle_t tp = NULL;
-    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp));
-    ESP_LOGI(TAG, "GT911 touch initialized");
+
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp_handle));
+    ESP_LOGI(TAG, "[TOUCH] GT911 initialized");
+}
+
+
+void lcd_draw_bitmap(int x, int y, int w, int h, uint8_t* data)
+{
+    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, LCD_H_RES, LCD_V_RES, data));
+}
+
+void lcd_backlight(bool on)
+{
+    gpio_set_level(LCD_BK_LIGHT_PIN, on ? 1 : 0);
+}
+
+
+
+static bool notify_color_trans_done(esp_lcd_panel_handle_t panel,
+                                    esp_lcd_dpi_panel_event_data_t *edata,
+                                    void *user_ctx)
+{
+    TaskHandle_t task_handle = (TaskHandle_t)user_ctx;
+    if (task_handle) {
+        xTaskNotifyGive(task_handle);
+    }
+    return false;
+}
+
+void lcd_register_event_callbacks()
+{
+    TaskHandle_t trans_done_task = xTaskGetCurrentTaskHandle();
+    esp_lcd_dpi_panel_event_callbacks_t cbs = {
+        .on_color_trans_done = notify_color_trans_done,
+    };
+    ESP_ERROR_CHECK(esp_lcd_dpi_panel_register_event_callbacks(panel_handle, &cbs, trans_done_task));    
 }
