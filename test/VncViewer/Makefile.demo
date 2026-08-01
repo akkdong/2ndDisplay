@@ -17,7 +17,7 @@ LDFLAGS = -lSDL2 -lm -lstdc++ -ljpeg -lz $(shell pkg-config --libs sdl2)
 
 # LVGL 공식 Make 설정 가져오기 (CSRCS 변수 활성화)
 LVGL_DIR_NAME = lvgl
-include $(LVGL_DIR_NAME)/lvgl.mk
+include $(LVGL_DIR_NAME)/lvgl-minimal.mk
 
 # 소스 파일 분류
 CSRCS += d3des.c                  # C 소스 파일들 추가

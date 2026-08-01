@@ -13,26 +13,20 @@
 #include <sys/poll.h>
 #include <csignal>
 
+#include "VncViewer.h"
 #include "lvgl/lvgl.h"
 
-#include <zlib.h>
 #include <jpeglib.h>
-
-extern "C" {
 #include "d3des.h"
-}
 
-static volatile sig_atomic_t g_sigint = 0;
-extern "C" void sigint_handler(int) { g_sigint = 1; }
 
-class VncClient;
-static VncClient *g_client = nullptr;
-static void create_vnc_ui(void *buf, int32_t w, int32_t h);
 
 // ============================================================
 // Network helpers
 // ============================================================
-static int set_nonblock(int fd, bool enable) {
+
+static int set_nonblock(int fd, bool enable) 
+{
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags == -1) return -1;
     if (enable)
@@ -42,7 +36,8 @@ static int set_nonblock(int fd, bool enable) {
     return fcntl(fd, F_SETFL, flags);
 }
 
-static bool read_exact(int fd, uint8_t *buf, size_t len, int timeout_ms = -1) {
+static bool read_exact(int fd, uint8_t *buf, size_t len, int timeout_ms = -1) 
+{
     while (len > 0) {
         ssize_t n = recv(fd, buf, len, 0);
         if (n > 0) {
@@ -62,7 +57,8 @@ static bool read_exact(int fd, uint8_t *buf, size_t len, int timeout_ms = -1) {
     return true;
 }
 
-static bool write_exact(int fd, const uint8_t *buf, size_t len) {
+static bool write_exact(int fd, const uint8_t *buf, size_t len) 
+{
     while (len > 0) {
         ssize_t n = send(fd, buf, len, 0);
         if (n <= 0) {
@@ -77,7 +73,8 @@ static bool write_exact(int fd, const uint8_t *buf, size_t len) {
 // ============================================================
 // VNC bit-reverse table for VNC Auth
 // ============================================================
-static const unsigned char bit_rev[256] = {
+static const unsigned char bit_rev[256] = 
+{
     0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,0x10,0x90,0x50,0xD0,0x30,0xB0,0x70,0xF0,
     0x08,0x88,0x48,0xC8,0x28,0xA8,0x68,0xE8,0x18,0x98,0x58,0xD8,0x38,0xB8,0x78,0xF8,
     0x04,0x84,0x44,0xC4,0x24,0xA4,0x64,0xE4,0x14,0x94,0x54,0xD4,0x34,0xB4,0x74,0xF4,
@@ -96,7 +93,8 @@ static const unsigned char bit_rev[256] = {
     0x0F,0x8F,0x4F,0xCF,0x2F,0xAF,0x6F,0xEF,0x1F,0x9F,0x5F,0xDF,0x3F,0xBF,0x7F,0xFF
 };
 
-static void vnc_encrypt_challenge(const uint8_t *challenge, const std::string &password, uint8_t *response) {
+static void vnc_encrypt_challenge(const uint8_t *challenge, const std::string &password, uint8_t *response) 
+{
     unsigned char key[8] = {};
     size_t len = password.size();
     if (len > 8) len = 8;
@@ -108,159 +106,83 @@ static void vnc_encrypt_challenge(const uint8_t *challenge, const std::string &p
     rfbDes(const_cast<unsigned char *>(challenge + 8), response + 8);
 }
 
-// ============================================================
-// RFB structs
-// ============================================================
-struct PixelFormat {
-    uint8_t bpp;
-    uint8_t depth;
-    uint8_t big_endian;
-    uint8_t true_color;
-    uint16_t red_max;
-    uint16_t green_max;
-    uint16_t blue_max;
-    uint8_t red_shift;
-    uint8_t green_shift;
-    uint8_t blue_shift;
-    uint8_t pad[3];
-} __attribute__((packed));
 
-struct ServerInit {
-    uint16_t fb_width;
-    uint16_t fb_height;
-    PixelFormat fmt;
-    uint32_t name_len;
-} __attribute__((packed));
 
 // ============================================================
-// VncClient
+// Tight decoder
 // ============================================================
-class VncClient {
-    int fd_ = -1;
-    int bpp_ = 4;
-    uint16_t fbw_ = 0, fbh_ = 0;
-    PixelFormat fmt_ = {};
-    std::vector<uint32_t> fb_;
-    lv_display_t *disp_ = nullptr;
 
-    bool need_update_ = false;
+static inline uint32_t read_pixel(const uint8_t *buf, int bpp) 
+{
+    if (bpp == 1) return buf[0];
+    if (bpp == 2) return (uint32_t(buf[1]) << 8) | buf[0];
+    if (bpp == 3) return (uint32_t(buf[2]) << 16) | (uint32_t(buf[1]) << 8) | buf[0];
+    return (uint32_t(buf[3]) << 24) | (uint32_t(buf[2]) << 16) | (uint32_t(buf[1]) << 8) | buf[0];
+}
 
-    z_stream zstream_[4] = {};
+static inline void write_pixel(uint8_t *buf, uint32_t pixel, int bpp) 
+{
+    if (bpp == 1) { buf[0] = pixel & 0xFF; }
+    else if (bpp == 2) { buf[0] = pixel & 0xFF; buf[1] = (pixel >> 8) & 0xFF; }
+    else if (bpp == 3) { buf[0] = pixel & 0xFF; buf[1] = (pixel >> 8) & 0xFF; buf[2] = (pixel >> 16) & 0xFF; }
+    else { buf[0] = pixel & 0xFF; buf[1] = (pixel >> 8) & 0xFF; buf[2] = (pixel >> 16) & 0xFF; buf[3] = (pixel >> 24) & 0xFF; }
+}
 
-    // Recv buffer for non-blocking I/O
-    std::vector<uint8_t> rbuf_;
-    size_t rpos_ = 0;
+static uint32_t pixel_to_32bit(const uint8_t *p, const PixelFormat &fmt) 
+{
+    uint32_t raw = read_pixel(p, fmt.bpp / 8);
+    if (!fmt.true_color) return raw;
+    uint8_t r = (raw >> fmt.red_shift) & fmt.red_max;
+    uint8_t g = (raw >> fmt.green_shift) & fmt.green_max;
+    uint8_t b = (raw >> fmt.blue_shift) & fmt.blue_max;
+    if (fmt.red_max != 0xFF) r = (r * 255 + fmt.red_max / 2) / fmt.red_max;
+    if (fmt.green_max != 0xFF) g = (g * 255 + fmt.green_max / 2) / fmt.green_max;
+    if (fmt.blue_max != 0xFF) b = (b * 255 + fmt.blue_max / 2) / fmt.blue_max;
+    return 0xFF000000 | (uint32_t(r) << 16) | (uint32_t(g) << 8) | b;
+}
 
-    void init_zstreams() {
-        for (int i = 0; i < 4; ++i)
-            inflateInit(&zstream_[i]);
-    }
-
-    void reset_zstream(int id) {
-        inflateReset(&zstream_[id]);
-    }
-
-    void destroy_zstreams() {
-        for (int i = 0; i < 4; ++i)
-            inflateEnd(&zstream_[i]);
-    }
-
-    // Drop already-consumed bytes so the recv buffer cannot grow unboundedly
-    void compact_buf() {
-        if (rpos_ == 0) return;
-        if (rpos_ == rbuf_.size() || rpos_ >= (1 << 16)) {
-            rbuf_.erase(rbuf_.begin(), rbuf_.begin() + rpos_);
-            rpos_ = 0;
+// Apply Tight Gradient filter (type 1) to a full buffer of pixel data
+static void tight_filter_gradient(uint8_t *data, int w, int h, int bpp) 
+{
+    int stride = w * bpp;
+    for (int y = 0; y < h; ++y) {
+        uint8_t *row = data + y * stride;
+        uint8_t *prev = (y > 0) ? data + (y - 1) * stride : nullptr;
+        for (int x = 0; x < w; ++x) {
+            for (int c = 0; c < bpp; ++c) {
+                uint8_t *p = &row[x * bpp + c];
+                int pred;
+                if (x == 0 && prev == nullptr)
+                    pred = 0;
+                else if (x == 0)
+                    pred = prev[c];
+                else if (prev == nullptr)
+                    pred = row[(x - 1) * bpp + c];
+                else
+                    pred = row[(x - 1) * bpp + c] + prev[x * bpp + c] - prev[(x - 1) * bpp + c];
+                *p = static_cast<uint8_t>(*p + pred);
+            }
         }
     }
+}
 
-    // Read more data from socket into buffer (non-blocking)
-    // Returns false on disconnect, true otherwise (including EAGAIN)
-    bool fill_buf() {
-        compact_buf();
-        uint8_t tmp[8192];
-        ssize_t n = recv(fd_, tmp, sizeof(tmp), 0);
-        if (n > 0) {
-            rbuf_.insert(rbuf_.end(), tmp, tmp + n);
-            return true;
-        }
-        if (n == 0) return false;
-        if (errno == EINTR) return true;
-        if (errno == EAGAIN || errno == EWOULDBLOCK) return true;
+static bool zlib_decompress(z_stream &zs, const uint8_t *in, size_t inlen, uint8_t *out, size_t outlen) 
+{
+    zs.next_in = const_cast<uint8_t *>(in);
+    zs.avail_in = inlen;
+    zs.next_out = out;
+    zs.avail_out = outlen;
+
+    int ret = inflate(&zs, Z_SYNC_FLUSH);
+    if (ret != Z_OK && ret != Z_STREAM_END) {
+        std::cerr << "inflate error: " << ret << std::endl;
         return false;
     }
+    return true;
+}
 
-    // Wait until buffer has at least 'needed' bytes
-    // Returns false only on disconnect/error
-    bool wait_buf(size_t needed) {
-        while (rbuf_.size() - rpos_ < needed) {
-            if (g_sigint) return false;
-            if (!fill_buf()) return false;
-            if (rbuf_.size() - rpos_ >= needed) return true;
-            struct pollfd pfd = { fd_, POLLIN, 0 };
-            int ret = poll(&pfd, 1, 16);
-            if (ret < 0) { if (g_sigint) return false; continue; }
-            if (ret == 0) {
-                lv_timer_handler();
-                continue;
-            }
-        }
-        return true;
-    }
 
-    // Convenience: read one byte
-    bool read_u8(uint8_t &v) {
-        if (!wait_buf(1)) return false;
-        v = rbuf_[rpos_++];
-        return true;
-    }
 
-    // Convenience: read into buffer
-    bool read_bytes(uint8_t *dst, size_t n) {
-        if (!wait_buf(n)) return false;
-        memcpy(dst, &rbuf_[rpos_], n);
-        rpos_ += n;
-        return true;
-    }
-
-    // Read compact length from buffer
-    bool read_clen(size_t &len) {
-        uint8_t b;
-        if (!read_u8(b)) return false;
-        len = b & 0x7F;
-        if (b & 0x80) {
-            if (!read_u8(b)) return false;
-            len |= (size_t(b & 0x7F) << 7);
-            if (b & 0x80) {
-                if (!read_u8(b)) return false;
-                len |= (size_t(b) << 14);
-            }
-        }
-        return true;
-    }
-
-    // Validate that a rectangle fits within the framebuffer
-    bool rect_ok(int rx, int ry, int rw, int rh) const {
-        return rx >= 0 && ry >= 0 && rw > 0 && rh > 0 &&
-               size_t(rx) + rw <= size_t(fbw_) && size_t(ry) + rh <= size_t(fbh_);
-    }
-
-    bool tight_decode(int rx, int ry, int rw, int rh, int bpp);
-
-public:
-    ~VncClient() {
-        destroy_zstreams();
-        if (fd_ != -1) close(fd_);
-    }
-
-    void set_display(lv_display_t *d) { disp_ = d; }
-
-    bool connect(const std::string &host, int port);
-    bool handshake(const std::string &password);
-    void run();
-
-    void send_pointer(int x, int y, uint8_t mask);
-};
 
 // ============================================================
 // LVGL UI overlay
@@ -276,7 +198,8 @@ static lv_timer_t *s_hide_timer = nullptr;
 const int32_t Y_VISIBLE = 0;
 const int32_t Y_HIDDEN  = -TAB_BAR_HEIGHT;
 
-static void animate_y(lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration) {
+static void animate_y(lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration) 
+{
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, obj);
@@ -287,7 +210,8 @@ static void animate_y(lv_obj_t *obj, int32_t start, int32_t end, uint32_t durati
     lv_anim_start(&a);
 }
 
-static void toggle_tab_bar(void) {
+static void toggle_tab_bar(void) 
+{
     lv_anim_t *current_anim = lv_anim_get(s_tab_bar, (lv_anim_exec_xcb_t)lv_obj_set_y);
 
     int32_t current_y = lv_obj_get_y(s_tab_bar);
@@ -324,7 +248,8 @@ static void toggle_tab_bar(void) {
     }
 }
 
-static void hide_timer_cb(lv_timer_t *timer) {
+static void hide_timer_cb(lv_timer_t *timer) 
+{
     int32_t current_y = lv_obj_get_y(s_tab_bar);
     lv_anim_t *current_anim = lv_anim_get(s_tab_bar, (lv_anim_exec_xcb_t)lv_obj_set_y);
 
@@ -349,7 +274,8 @@ static void hide_timer_cb(lv_timer_t *timer) {
     lv_timer_pause(timer);
 }
 
-static void ui_event_handler(lv_event_t *e) {
+static void ui_event_handler(lv_event_t *e) 
+{
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t *target = lv_event_get_target_obj(e);
 
@@ -360,20 +286,20 @@ static void ui_event_handler(lv_event_t *e) {
     }
 
     // Forward pointer events on the VNC canvas to the remote server
-    if (target == s_canvas && g_client) {
+    if (target == s_canvas && VncClient::g_client) {
         lv_indev_t *indev = lv_indev_active();
         if (!indev) return;
         lv_point_t p;
         lv_indev_get_point(indev, &p);
         switch (code) {
         case LV_EVENT_PRESSED:
-            g_client->send_pointer(p.x, p.y, 0x01);
+            VncClient::g_client->send_pointer(p.x, p.y, 0x01);
             break;
         case LV_EVENT_PRESSING:
-            g_client->send_pointer(p.x, p.y, 0x01);
+            VncClient::g_client->send_pointer(p.x, p.y, 0x01);
             break;
         case LV_EVENT_RELEASED:
-            g_client->send_pointer(p.x, p.y, 0x00);
+            VncClient::g_client->send_pointer(p.x, p.y, 0x00);
             break;
         default:
             break;
@@ -381,7 +307,8 @@ static void ui_event_handler(lv_event_t *e) {
     }
 }
 
-static void create_vnc_ui(void *buf, int32_t w, int32_t h) {
+static void create_vnc_ui(void *buf, int32_t w, int32_t h) 
+{
     lv_obj_t *screen = lv_screen_active();
 
     // ----------------------------------------------------
@@ -430,7 +357,48 @@ static void create_vnc_ui(void *buf, int32_t w, int32_t h) {
     s_hide_timer = lv_timer_create(hide_timer_cb, 3000, NULL);
 }
 
-bool VncClient::connect(const std::string &host, int port) {
+
+
+//
+//
+//
+
+VncClient* VncClient::g_client = nullptr;
+volatile sig_atomic_t VncClient::g_sigint = 0;
+
+void VncClient::sigint_handler(int) 
+{ 
+    VncClient::g_sigint = 1; 
+}
+
+
+VncClient::VncClient(lv_display_t* disp)
+{
+    //
+    disp_ = disp;
+
+    //
+    g_client = this;
+
+    //
+    struct sigaction sa;
+    sa.sa_handler = VncClient::sigint_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, nullptr);
+}
+
+VncClient::~VncClient() 
+{
+    destroy_zstreams();
+
+    if (fd_ != -1) 
+        close(fd_);
+}
+
+
+bool VncClient::connect(const std::string &host, int port) 
+{
     fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (fd_ < 0) return false;
 
@@ -446,7 +414,8 @@ bool VncClient::connect(const std::string &host, int port) {
     return set_nonblock(fd_, true) == 0;
 }
 
-bool VncClient::handshake(const std::string &password) {
+bool VncClient::handshake(const std::string &password) 
+{
     // 1. Protocol version
     uint8_t ver[12];
     if (!read_exact(fd_, ver, 12)) return false;
@@ -554,74 +523,112 @@ bool VncClient::handshake(const std::string &password) {
     return true;
 }
 
-// ============================================================
-// Tight decoder
-// ============================================================
-static inline uint32_t read_pixel(const uint8_t *buf, int bpp) {
-    if (bpp == 1) return buf[0];
-    if (bpp == 2) return (uint32_t(buf[1]) << 8) | buf[0];
-    if (bpp == 3) return (uint32_t(buf[2]) << 16) | (uint32_t(buf[1]) << 8) | buf[0];
-    return (uint32_t(buf[3]) << 24) | (uint32_t(buf[2]) << 16) | (uint32_t(buf[1]) << 8) | buf[0];
+void VncClient::init_zstreams() 
+{
+    for (int i = 0; i < 4; ++i)
+        inflateInit(&zstream_[i]);
 }
 
-static inline void write_pixel(uint8_t *buf, uint32_t pixel, int bpp) {
-    if (bpp == 1) { buf[0] = pixel & 0xFF; }
-    else if (bpp == 2) { buf[0] = pixel & 0xFF; buf[1] = (pixel >> 8) & 0xFF; }
-    else if (bpp == 3) { buf[0] = pixel & 0xFF; buf[1] = (pixel >> 8) & 0xFF; buf[2] = (pixel >> 16) & 0xFF; }
-    else { buf[0] = pixel & 0xFF; buf[1] = (pixel >> 8) & 0xFF; buf[2] = (pixel >> 16) & 0xFF; buf[3] = (pixel >> 24) & 0xFF; }
+void VncClient::reset_zstream(int id) 
+{
+    inflateReset(&zstream_[id]);
 }
 
-static uint32_t pixel_to_32bit(const uint8_t *p, const PixelFormat &fmt) {
-    uint32_t raw = read_pixel(p, fmt.bpp / 8);
-    if (!fmt.true_color) return raw;
-    uint8_t r = (raw >> fmt.red_shift) & fmt.red_max;
-    uint8_t g = (raw >> fmt.green_shift) & fmt.green_max;
-    uint8_t b = (raw >> fmt.blue_shift) & fmt.blue_max;
-    if (fmt.red_max != 0xFF) r = (r * 255 + fmt.red_max / 2) / fmt.red_max;
-    if (fmt.green_max != 0xFF) g = (g * 255 + fmt.green_max / 2) / fmt.green_max;
-    if (fmt.blue_max != 0xFF) b = (b * 255 + fmt.blue_max / 2) / fmt.blue_max;
-    return 0xFF000000 | (uint32_t(r) << 16) | (uint32_t(g) << 8) | b;
+void VncClient::destroy_zstreams() 
+{
+    for (int i = 0; i < 4; ++i)
+        inflateEnd(&zstream_[i]);
 }
 
-// Apply Tight Gradient filter (type 1) to a full buffer of pixel data
-static void tight_filter_gradient(uint8_t *data, int w, int h, int bpp) {
-    int stride = w * bpp;
-    for (int y = 0; y < h; ++y) {
-        uint8_t *row = data + y * stride;
-        uint8_t *prev = (y > 0) ? data + (y - 1) * stride : nullptr;
-        for (int x = 0; x < w; ++x) {
-            for (int c = 0; c < bpp; ++c) {
-                uint8_t *p = &row[x * bpp + c];
-                int pred;
-                if (x == 0 && prev == nullptr)
-                    pred = 0;
-                else if (x == 0)
-                    pred = prev[c];
-                else if (prev == nullptr)
-                    pred = row[(x - 1) * bpp + c];
-                else
-                    pred = row[(x - 1) * bpp + c] + prev[x * bpp + c] - prev[(x - 1) * bpp + c];
-                *p = static_cast<uint8_t>(*p + pred);
-            }
-        }
+// Drop already-consumed bytes so the recv buffer cannot grow unboundedly
+void VncClient::compact_buf() 
+{
+    if (rpos_ == 0) return;
+    if (rpos_ == rbuf_.size() || rpos_ >= (1 << 16)) {
+        rbuf_.erase(rbuf_.begin(), rbuf_.begin() + rpos_);
+        rpos_ = 0;
     }
 }
 
-static bool zlib_decompress(z_stream &zs, const uint8_t *in, size_t inlen, uint8_t *out, size_t outlen) {
-    zs.next_in = const_cast<uint8_t *>(in);
-    zs.avail_in = inlen;
-    zs.next_out = out;
-    zs.avail_out = outlen;
+// Read more data from socket into buffer (non-blocking)
+// Returns false on disconnect, true otherwise (including EAGAIN)
+bool VncClient::fill_buf() 
+{
+    compact_buf();
+    uint8_t tmp[8192];
+    ssize_t n = recv(fd_, tmp, sizeof(tmp), 0);
+    if (n > 0) {
+        rbuf_.insert(rbuf_.end(), tmp, tmp + n);
+        return true;
+    }
+    if (n == 0) return false;
+    if (errno == EINTR) return true;
+    if (errno == EAGAIN || errno == EWOULDBLOCK) return true;
+    return false;
+}
 
-    int ret = inflate(&zs, Z_SYNC_FLUSH);
-    if (ret != Z_OK && ret != Z_STREAM_END) {
-        std::cerr << "inflate error: " << ret << std::endl;
-        return false;
+// Wait until buffer has at least 'needed' bytes
+// Returns false only on disconnect/error
+bool VncClient::wait_buf(size_t needed) 
+{
+    while (rbuf_.size() - rpos_ < needed) {
+        if (VncClient::g_sigint) return false;
+        if (!fill_buf()) return false;
+        if (rbuf_.size() - rpos_ >= needed) return true;
+        struct pollfd pfd = { fd_, POLLIN, 0 };
+        int ret = poll(&pfd, 1, 16);
+        if (ret < 0) { if (VncClient::g_sigint) return false; continue; }
+        if (ret == 0) {
+            lv_timer_handler();
+            continue;
+        }
     }
     return true;
 }
 
-bool VncClient::tight_decode(int rx, int ry, int rw, int rh, int bpp) {
+// Convenience: read one byte
+bool VncClient::read_u8(uint8_t &v) 
+{
+    if (!wait_buf(1)) return false;
+    v = rbuf_[rpos_++];
+    return true;
+}
+
+// Convenience: read into buffer
+bool VncClient::read_bytes(uint8_t *dst, size_t n) 
+{
+    if (!wait_buf(n)) return false;
+    memcpy(dst, &rbuf_[rpos_], n);
+    rpos_ += n;
+    return true;
+}
+
+// Read compact length from buffer
+bool VncClient::read_clen(size_t &len) 
+{
+    uint8_t b;
+    if (!read_u8(b)) return false;
+    len = b & 0x7F;
+    if (b & 0x80) {
+        if (!read_u8(b)) return false;
+        len |= (size_t(b & 0x7F) << 7);
+        if (b & 0x80) {
+            if (!read_u8(b)) return false;
+            len |= (size_t(b) << 14);
+        }
+    }
+    return true;
+}
+
+// Validate that a rectangle fits within the framebuffer
+bool VncClient::rect_ok(int rx, int ry, int rw, int rh) const 
+{
+    return rx >= 0 && ry >= 0 && rw > 0 && rh > 0 &&
+            size_t(rx) + rw <= size_t(fbw_) && size_t(ry) + rh <= size_t(fbh_);
+}
+
+bool VncClient::tight_decode(int rx, int ry, int rw, int rh, int bpp) 
+{
     auto &fb = fb_;
     int fbw = fbw_;
 
@@ -790,7 +797,8 @@ bool VncClient::tight_decode(int rx, int ry, int rw, int rh, int bpp) {
 // ============================================================
 // Pointer input to the VNC server
 // ============================================================
-void VncClient::send_pointer(int x, int y, uint8_t mask) {
+void VncClient::send_pointer(int x, int y, uint8_t mask) 
+{
     if (fd_ == -1) return;
     if (x < 0) x = 0;
     if (y < 0) y = 0;
@@ -805,7 +813,8 @@ void VncClient::send_pointer(int x, int y, uint8_t mask) {
 // ============================================================
 // Main event loop
 // ============================================================
-void VncClient::run() {
+void VncClient::run() 
+{
     // Send SetEncodings
     uint8_t setenc[] = {
         2,       // message type
@@ -852,7 +861,7 @@ void VncClient::run() {
         // Read message type (wait_buf handles polling + LVGL processing internally)
         uint8_t msg_type;
         if (!read_u8(msg_type)) {
-            if (!g_sigint) std::cerr << "Server disconnected" << std::endl;
+            if (!VncClient::g_sigint) std::cerr << "Server disconnected" << std::endl;
             break;
         }
 
@@ -956,56 +965,3 @@ void VncClient::run() {
     }
 }
 
-// ============================================================
-// main
-// ============================================================
-int main(int argc, char **argv) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <host> [--port <port>] [--password <password>]" << std::endl;
-        return 1;
-    }
-
-    std::string host = argv[1];
-    int port = 5900;
-    std::string password;
-
-    for (int i = 2; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--port" && i + 1 < argc) {
-            port = std::stoi(argv[++i]);
-        } else if (arg == "--password" && i + 1 < argc) {
-            password = argv[++i];
-        }
-    }
-    std::cout << "VncServer: " << host << ", port = " << port << ", password = " << password << std::endl;
-
-    struct sigaction sa;
-    sa.sa_handler = sigint_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, nullptr);
-
-    // LVGL + SDL2 (window is resized to the VNC framebuffer after handshake)
-    lv_init();
-    lv_display_t *disp = lv_sdl_window_create(800, 480);
-    lv_indev_t *mouse = lv_sdl_mouse_create();
-    lv_indev_set_display(mouse, disp);
-
-    VncClient client;
-    g_client = &client;
-    client.set_display(disp);
-
-    if (!client.connect(host, port)) {
-        std::cerr << "Connection failed" << std::endl;
-        return 1;
-    }
-    std::cout << "Connected to " << host << ":" << port << std::endl;
-
-    if (!client.handshake(password)) {
-        std::cerr << "Handshake failed" << std::endl;
-        return 1;
-    }
-
-    client.run();
-    return 0;
-}

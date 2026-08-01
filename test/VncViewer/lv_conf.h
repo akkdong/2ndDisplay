@@ -592,8 +592,14 @@
 
 #endif /*LV_USE_DRAW_OPENGLES*/
 
-/** Uses SDL renderer API */
-#define LV_USE_DRAW_SDL 1
+/** Uses SDL renderer API
+ * NOTE: 0 = use the SDL software backend (lv_sdl_sw.c) which renders into a
+ * memory framebuffer and uploads it with SDL_UpdateTexture every frame. This
+ * is required for the VNC canvas: the LV_USE_DRAW_SDL=1 backend (lv_sdl_texture.c)
+ * caches each draw task as a static SDL texture keyed by its draw dsc, so the
+ * canvas image would be frozen at the first (all black) frame and never pick up
+ * the updated VNC framebuffer data. */
+#define LV_USE_DRAW_SDL 0
 
 
 

@@ -17,11 +17,11 @@ LDFLAGS = -lSDL2 -lm -lstdc++ -ljpeg -lz $(shell pkg-config --libs sdl2)
 
 # LVGL 공식 Make 설정 가져오기 (CSRCS 변수 활성화)
 LVGL_DIR_NAME = lvgl
-include $(LVGL_DIR_NAME)/lvgl.mk
+include $(LVGL_DIR_NAME)/lvgl-minimal.mk
 
 # 소스 파일 분류
-CSRCS += d3des.c                  # C 소스 파일들 추가
-CPPSRCS = VncViewer.cpp        # C++ 소스 파일들 추가 (여기에 추가하세요)make
+CSRCS += d3des.c 
+CPPSRCS = VncViewer.cpp main.cpp
 
 # 오브젝트 파일 목록 정의
 CUR_DIR := $(shell pwd)
