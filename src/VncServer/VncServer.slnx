@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="VncServer.vcxproj" />
+  <Project Path="VncServer.vcxproj" Id="aeb3d0d3-6071-4cf4-aff5-89795055c902" />
 </Solution>

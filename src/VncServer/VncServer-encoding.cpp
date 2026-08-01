@@ -128,17 +128,19 @@ void CaptureSpecificDisplay(rfbScreenInfoPtr screen, const MonitorInfo& targetMo
 
     CaptureScreenWithCursor(screen, targetMonitor, hMemoryDC);
 
+    WORD biBitCount = 24;
+    int bytesPerPixel = biBitCount / 8;
     BITMAPINFOHEADER bi = { 0 };
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = targetMonitor.width;
     bi.biHeight = -targetMonitor.height;
     bi.biPlanes = 1;
-    bi.biBitCount = 32;
+    bi.biBitCount = biBitCount;
     bi.biCompression = BI_RGB;
 
     GetDIBits(hMemoryDC, hBitmap, 0, targetMonitor.height, buffer, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
 
-    for (int i = 0; i < targetMonitor.width * targetMonitor.height * 4; i += 4) 
+    for (int i = 0; i < targetMonitor.width * targetMonitor.height * bytesPerPixel; i += bytesPerPixel)
     {
         char temp = buffer[i];
         buffer[i] = buffer[i + 2];
@@ -288,7 +290,7 @@ int main(int argc, char* argv[])
 
     int width = selectedMonitor.width;
     int height = selectedMonitor.height;
-    const int bpp = 4;
+    const int bpp = 3;
 
     std::vector<char> frame_buffer(width * height * bpp, 0);
 
