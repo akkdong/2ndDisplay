@@ -50,8 +50,10 @@ void app_main()
     }
     bsp_display_unlock();
 
-    bsp_display_brightness_set(60);
+    bsp_display_brightness_set(10);
+    /*
     bsp_display_backlight_on();
+    */
 
     /*
     while(1)
