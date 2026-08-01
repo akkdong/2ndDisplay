@@ -163,9 +163,19 @@ class VncClient {
             inflateEnd(&zstream_[i]);
     }
 
+    // Drop already-consumed bytes so the recv buffer cannot grow unboundedly
+    void compact_buf() {
+        if (rpos_ == 0) return;
+        if (rpos_ == rbuf_.size() || rpos_ >= (1 << 16)) {
+            rbuf_.erase(rbuf_.begin(), rbuf_.begin() + rpos_);
+            rpos_ = 0;
+        }
+    }
+
     // Read more data from socket into buffer (non-blocking)
     // Returns false on disconnect, true otherwise (including EAGAIN)
     bool fill_buf() {
+        compact_buf();
         uint8_t tmp[8192];
         ssize_t n = recv(fd_, tmp, sizeof(tmp), 0);
         if (n > 0) {
@@ -228,6 +238,12 @@ class VncClient {
             }
         }
         return true;
+    }
+
+    // Validate that a rectangle fits within the framebuffer
+    bool rect_ok(int rx, int ry, int rw, int rh) const {
+        return rx >= 0 && ry >= 0 && rw > 0 && rh > 0 &&
+               size_t(rx) + rw <= size_t(fbw_) && size_t(ry) + rh <= size_t(fbh_);
     }
 
     bool tight_decode(int rx, int ry, int rw, int rh, int bpp);
@@ -342,12 +358,21 @@ bool VncClient::handshake(const std::string &password) {
     std::cout << std::endl;
 
     if (nlen > 0) {
+        if (nlen > (1 << 20)) {
+            std::cerr << "Desktop name too long: " << nlen << std::endl;
+            return false;
+        }
         std::vector<char> name(nlen + 1, 0);
         if (!read_exact(fd_, (uint8_t *)name.data(), nlen)) return false;
         std::cout << "Desktop: " << name.data() << std::endl;
     }
 
-    fb_.resize(fbw_ * fbh_, 0xFF000000);
+    const size_t fb_pixels = size_t(fbw_) * fbh_;
+    if (fb_pixels > 0x10000000) {
+        std::cerr << "Framebuffer too large: " << fbw_ << "x" << fbh_ << std::endl;
+        return false;
+    }
+    fb_.resize(fb_pixels, 0xFF000000);
     bpp_ = fmt_.bpp / 8;
     if (bpp_ < 1) bpp_ = 1;
     if (bpp_ > 4) bpp_ = 4;
@@ -441,6 +466,11 @@ bool VncClient::tight_decode(int rx, int ry, int rw, int rh, int bpp) {
     auto &fb = fb_;
     int fbw = fbw_;
 
+    if (!rect_ok(rx, ry, rw, rh)) {
+        std::cerr << "Tight rect out of bounds" << std::endl;
+        return false;
+    }
+
     uint8_t ctrl;
     if (!read_u8(ctrl)) return false;
 
@@ -475,6 +505,12 @@ bool VncClient::tight_decode(int rx, int ry, int rw, int rh, int bpp) {
         if (jpeg_read_header(&cinfo, TRUE) == JPEG_HEADER_OK) {
             cinfo.out_color_space = JCS_EXT_BGRA;
             jpeg_start_decompress(&cinfo);
+            if (cinfo.output_width > (JDIMENSION)rw || cinfo.output_height > (JDIMENSION)rh) {
+                std::cerr << "Tight JPEG size mismatch" << std::endl;
+                jpeg_abort_decompress(&cinfo);
+                jpeg_destroy_decompress(&cinfo);
+                return false;
+            }
             for (int y = 0; y < rh && y < (int)cinfo.output_height; ++y) {
                 uint8_t *row = reinterpret_cast<uint8_t *>(&fb[(ry + y) * fbw + rx]);
                 jpeg_read_scanlines(&cinfo, &row, 1);
@@ -745,8 +781,14 @@ void VncClient::run() {
                         uint16_t rh = (uint16_t(rect_hdr[6]) << 8) | rect_hdr[7];
                         int32_t encoding = (int32_t(rect_hdr[8]) << 24) | (int32_t(rect_hdr[9]) << 16) |
                                            (int32_t(rect_hdr[10]) << 8) | rect_hdr[11];
+                        if (!rect_ok(rx, ry, rw, rh)) {
+                            std::cerr << "Rect out of bounds: " << rx << "," << ry << " "
+                                      << rw << "x" << rh << " (fb " << fbw_ << "x" << fbh_ << ")" << std::endl;
+                            msg_ok = false;
+                            break;
+                        }
                         if (encoding == 0) {
-                            size_t pix_bytes = rw * rh * bpp_;
+                            size_t pix_bytes = size_t(rw) * rh * bpp_;
                             std::vector<uint8_t> pixels(pix_bytes);
                             if (!read_bytes(pixels.data(), pix_bytes)) { msg_ok = false; break; }
                             const uint8_t *src = pixels.data();
@@ -760,6 +802,11 @@ void VncClient::run() {
                             if (!read_bytes(copy_hdr, 4)) { msg_ok = false; break; }
                             int src_x = (int(copy_hdr[0]) << 8) | copy_hdr[1];
                             int src_y = (int(copy_hdr[2]) << 8) | copy_hdr[3];
+                            if (!rect_ok(src_x, src_y, rw, rh)) {
+                                std::cerr << "CopyRect source out of bounds" << std::endl;
+                                msg_ok = false;
+                                break;
+                            }
                             for (int y = 0; y < rh; ++y)
                                 for (int x = 0; x < rw; ++x)
                                     fb_[(ry + y) * fbw_ + (rx + x)] = fb_[(src_y + y) * fbw_ + (src_x + x)];
@@ -803,6 +850,10 @@ void VncClient::run() {
             if (!read_bytes(clbuf, 4)) break;
             uint32_t clen = (uint32_t(clbuf[0]) << 24) | (uint32_t(clbuf[1]) << 16) |
                             (uint32_t(clbuf[2]) << 8) | clbuf[3];
+            if (clen > (1 << 20)) {
+                std::cerr << "Oversized server cut-text: " << clen << " bytes" << std::endl;
+                break;
+            }
             std::vector<uint8_t> ctext(clen);
             if (!read_bytes(ctext.data(), clen)) break;
         } else {
