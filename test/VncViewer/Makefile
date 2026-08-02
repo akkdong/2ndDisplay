@@ -21,7 +21,7 @@ include $(LVGL_DIR_NAME)/lvgl-minimal.mk
 
 # 소스 파일 분류
 CSRCS += d3des.c 
-CPPSRCS = VncViewer.cpp main.cpp
+CPPSRCS = VncViewer.cpp Display.cpp main.cpp
 
 # 오브젝트 파일 목록 정의
 CUR_DIR := $(shell pwd)

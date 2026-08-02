@@ -14,7 +14,7 @@
 #include <csignal>
 
 #include "VncViewer.h"
-#include "lvgl/lvgl.h"
+#include "Display.h"
 
 #include <jpeglib.h>
 #include "d3des.h"
@@ -183,209 +183,14 @@ static bool zlib_decompress(z_stream &zs, const uint8_t *in, size_t inlen, uint8
 
 
 
-
-// ============================================================
-// LVGL UI overlay
-// ============================================================
-#define TAB_BAR_HEIGHT 50
-
-static lv_obj_t *s_canvas = nullptr;
-static lv_obj_t *s_tab_bar = nullptr;
-static lv_obj_t *s_settings_panel = nullptr;
-static lv_timer_t *s_hide_timer = nullptr;
-
-// Tab bar fully visible / fully hidden target Y coordinates
-const int32_t Y_VISIBLE = 0;
-const int32_t Y_HIDDEN  = -TAB_BAR_HEIGHT;
-
-static void animate_y(lv_obj_t *obj, int32_t start, int32_t end, uint32_t duration) 
-{
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a, start, end);
-    lv_anim_set_time(&a, duration);
-    lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-    lv_anim_start(&a);
-}
-
-static void toggle_tab_bar(void) 
-{
-    lv_anim_t *current_anim = lv_anim_get(s_tab_bar, (lv_anim_exec_xcb_t)lv_obj_set_y);
-
-    int32_t current_y = lv_obj_get_y(s_tab_bar);
-    int32_t target_y;
-    uint32_t duration = 250;
-
-    if (current_anim) {
-        // [Case A] animation in progress -> reverse direction
-        target_y = (current_anim->end_value == Y_HIDDEN) ? Y_VISIBLE : Y_HIDDEN;
-        lv_anim_delete(s_tab_bar, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    } else {
-        // [Case B] idle -> toggle based on current position
-        target_y = (current_y < Y_VISIBLE) ? Y_VISIBLE : Y_HIDDEN;
-    }
-
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, s_tab_bar);
-    lv_anim_set_values(&a, current_y, target_y);
-    lv_anim_set_time(&a, duration);
-    lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-    lv_anim_start(&a);
-
-    if (target_y == Y_VISIBLE) {
-        if (s_hide_timer) {
-            lv_timer_reset(s_hide_timer);
-            lv_timer_resume(s_hide_timer);
-        }
-    } else {
-        if (s_hide_timer) {
-            lv_timer_pause(s_hide_timer);
-        }
-    }
-}
-
-static void hide_timer_cb(lv_timer_t *timer) 
-{
-    int32_t current_y = lv_obj_get_y(s_tab_bar);
-    lv_anim_t *current_anim = lv_anim_get(s_tab_bar, (lv_anim_exec_xcb_t)lv_obj_set_y);
-
-    if (current_y <= Y_HIDDEN || (current_anim && current_anim->end_value == Y_HIDDEN)) {
-        lv_timer_pause(timer);
-        return;
-    }
-
-    if (current_anim) {
-        lv_anim_delete(s_tab_bar, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    }
-
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, s_tab_bar);
-    lv_anim_set_values(&a, current_y, Y_HIDDEN);
-    lv_anim_set_time(&a, 250);
-    lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
-    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
-    lv_anim_start(&a);
-
-    lv_timer_pause(timer);
-}
-
-static void ui_event_handler(lv_event_t *e) 
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *target = lv_event_get_target_obj(e);
-
-    // Any click on the UI toggles the auto-hiding tab bar
-    if (code == LV_EVENT_CLICKED) {
-        toggle_tab_bar();
-        return;
-    }
-
-    // Forward pointer events on the VNC canvas to the remote server
-    if (target == s_canvas && VncClient::g_client) {
-        lv_indev_t *indev = lv_indev_active();
-        if (!indev) return;
-        lv_point_t p;
-        lv_indev_get_point(indev, &p);
-        switch (code) {
-        case LV_EVENT_PRESSED:
-            VncClient::g_client->send_pointer(p.x, p.y, 0x01);
-            break;
-        case LV_EVENT_PRESSING:
-            VncClient::g_client->send_pointer(p.x, p.y, 0x01);
-            break;
-        case LV_EVENT_RELEASED:
-            VncClient::g_client->send_pointer(p.x, p.y, 0x00);
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-static void create_vnc_ui(void *buf, int32_t w, int32_t h) 
-{
-    lv_obj_t *screen = lv_screen_active();
-
-    // ----------------------------------------------------
-    // LAYER 1: VNC canvas (full screen, backed by the client framebuffer)
-    // ----------------------------------------------------
-    s_canvas = lv_canvas_create(screen);
-    lv_canvas_set_buffer(s_canvas, buf, w, h, LV_COLOR_FORMAT_ARGB8888);
-    lv_obj_align(s_canvas, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_add_flag(s_canvas, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(s_canvas, ui_event_handler, LV_EVENT_ALL, NULL);
-
-    // ----------------------------------------------------
-    // LAYER 2: Settings panel (hidden above the screen)
-    // ----------------------------------------------------
-    s_settings_panel = lv_obj_create(screen);
-    lv_obj_set_size(s_settings_panel, w, h - 100);
-    lv_obj_set_pos(s_settings_panel, 0, -h);
-    lv_obj_set_style_bg_color(s_settings_panel, lv_color_hex(0x2C3E50), 0);
-    lv_obj_set_style_bg_opa(s_settings_panel, LV_OPA_90, 0);
-    lv_obj_add_event_cb(s_settings_panel, ui_event_handler, LV_EVENT_ALL, NULL);
-    lv_obj_t *set_label = lv_label_create(s_settings_panel);
-    lv_label_set_text(set_label, "Settings Menu\n(Swipe UP to close)");
-    lv_obj_center(set_label);
-
-    // ----------------------------------------------------
-    // LAYER 3: Auto-hiding tab bar
-    // ----------------------------------------------------
-    s_tab_bar = lv_obj_create(screen);
-    lv_obj_set_size(s_tab_bar, w, TAB_BAR_HEIGHT);
-    lv_obj_set_pos(s_tab_bar, 0, 0);
-    lv_obj_set_style_bg_color(s_tab_bar, lv_color_hex(0x1ABC9C), 0);
-    lv_obj_set_style_pad_all(s_tab_bar, 5, 0);
-    lv_obj_add_flag(s_tab_bar, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(s_tab_bar, ui_event_handler, LV_EVENT_ALL, NULL);
-
-    for (int i = 0; i < 3; i++) {
-        lv_obj_t *btn = lv_button_create(s_tab_bar);
-        lv_obj_set_size(btn, 100, LV_PCT(100));
-        lv_obj_set_pos(btn, i * 110 + 10, 0);
-        lv_obj_t *btn_label = lv_label_create(btn);
-        lv_label_set_text_fmt(btn_label, "Tab %d", i + 1);
-        lv_obj_center(btn_label);
-    }
-
-    // Auto-hide the tab bar 3 seconds after it is shown
-    s_hide_timer = lv_timer_create(hide_timer_cb, 3000, NULL);
-}
-
-
-
 //
 //
 //
 
-VncClient* VncClient::g_client = nullptr;
-volatile sig_atomic_t VncClient::g_sigint = 0;
-
-void VncClient::sigint_handler(int) 
-{ 
-    VncClient::g_sigint = 1; 
-}
-
-
-VncClient::VncClient(lv_display_t* disp)
+VncClient::VncClient(Display* disp)
 {
     //
     disp_ = disp;
-
-    //
-    g_client = this;
-
-    //
-    struct sigaction sa;
-    sa.sa_handler = VncClient::sigint_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, nullptr);
 }
 
 VncClient::~VncClient() 
@@ -516,8 +321,8 @@ bool VncClient::handshake(const std::string &password)
 
     // Resize the LVGL display/window to the VNC framebuffer size and
     // (re)build the overlay UI on top of the VNC canvas
-    if (disp_) lv_display_set_resolution(disp_, fbw_, fbh_);
-    create_vnc_ui(fb_.data(), fbw_, fbh_);
+    //if (disp_) lv_display_set_resolution((lv_display_t *)(*disp_), fbw_, fbh_);
+    //Display::create_vnc_ui(fb_.data(), fbw_, fbh_);
 
     init_zstreams();
     return true;
@@ -572,12 +377,12 @@ bool VncClient::fill_buf()
 bool VncClient::wait_buf(size_t needed) 
 {
     while (rbuf_.size() - rpos_ < needed) {
-        if (VncClient::g_sigint) return false;
+        if (breakLoop) return false;
         if (!fill_buf()) return false;
         if (rbuf_.size() - rpos_ >= needed) return true;
         struct pollfd pfd = { fd_, POLLIN, 0 };
         int ret = poll(&pfd, 1, 16);
-        if (ret < 0) { if (VncClient::g_sigint) return false; continue; }
+        if (ret < 0) { if (breakLoop) return false; continue; }
         if (ret == 0) {
             lv_timer_handler();
             continue;
@@ -813,6 +618,18 @@ void VncClient::send_pointer(int x, int y, uint8_t mask)
 // ============================================================
 // Main event loop
 // ============================================================
+
+bool VncClient::isOk()
+{
+    return true;
+}
+
+void VncClient::loop()
+{
+
+}
+
+
 void VncClient::run() 
 {
     // Send SetEncodings
@@ -861,7 +678,7 @@ void VncClient::run()
         // Read message type (wait_buf handles polling + LVGL processing internally)
         uint8_t msg_type;
         if (!read_u8(msg_type)) {
-            if (!VncClient::g_sigint) std::cerr << "Server disconnected" << std::endl;
+            if (!breakLoop) std::cerr << "Server disconnected" << std::endl;
             break;
         }
 
@@ -930,7 +747,12 @@ void VncClient::run()
             if (!msg_ok) break;
 
             // The VNC framebuffer backs the LVGL canvas directly
+            #if 0
             lv_obj_invalidate(s_canvas);
+            #else
+            disp_->pushEvent(Display::EVT_UPDATE_FRAMEBUFFER);
+            lv_async_call(Display::OnEvent, disp_);
+            #endif
             need_update_ = true;
 
         } else if (msg_type == 1) {

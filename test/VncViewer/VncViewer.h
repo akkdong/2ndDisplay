@@ -5,9 +5,16 @@
 
 #include <vector>
 #include <string>
+#include <atomic>
+#include <csignal>
 #include <zlib.h>
 #include "lvgl/lvgl.h"
 
+
+//
+//
+
+class Display;
 
 
 
@@ -42,18 +49,21 @@ struct ServerInit {
 // ============================================================
 class VncClient 
 {
+    friend class Display;
+
 public:
-    VncClient(lv_display_t* disp);
+    VncClient(Display* disp);
+public:
     virtual ~VncClient();
 
     bool connect(const std::string &host, int port);
     bool handshake(const std::string &password);
+    void loop();
     void run();
 
-    void send_pointer(int x, int y, uint8_t mask);
+    bool isOk();
 
-    //
-    static void sigint_handler(int);
+    void send_pointer(int x, int y, uint8_t mask);
 
 private:
     void init_zstreams();
@@ -85,9 +95,6 @@ private:
 
     bool tight_decode(int rx, int ry, int rw, int rh, int bpp);
 
-public:
-    static VncClient* g_client;
-    static volatile sig_atomic_t g_sigint;
 
 private:
     int fd_ = -1;
@@ -95,7 +102,7 @@ private:
     uint16_t fbw_ = 0, fbh_ = 0;
     PixelFormat fmt_ = {};
     std::vector<uint32_t> fb_;
-    lv_display_t *disp_ = nullptr;
+    Display *disp_ = nullptr;
 
     bool need_update_ = false;
 
@@ -104,4 +111,7 @@ private:
     // Recv buffer for non-blocking I/O
     std::vector<uint8_t> rbuf_;
     size_t rpos_ = 0;
+
+    //
+    std::atomic<bool> breakLoop = false;
 };
