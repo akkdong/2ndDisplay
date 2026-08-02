@@ -202,7 +202,7 @@ VncClient::~VncClient()
 }
 
 
-bool VncClient::connect(const std::string &host, int port) 
+bool VncClient::connect(const std::string &host, int port, int timeout_ms) 
 {
     fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (fd_ < 0) return false;
@@ -212,10 +212,46 @@ bool VncClient::connect(const std::string &host, int port)
     addr.sin_port = htons(port);
     if (inet_pton(AF_INET, host.c_str(), &addr.sin_addr) <= 0) {
         struct hostent *he = gethostbyname(host.c_str());
-        if (!he) return false;
+        if (!he) {
+            close(fd_);
+            fd_ = -1;
+            return false;
+        }
         memcpy(&addr.sin_addr, he->h_addr, he->h_length);
     }
-    if (::connect(fd_, (sockaddr *)&addr, sizeof(addr)) < 0) return false;
+
+    // Non-blocking connect + poll() so an unreachable host fails quickly
+    // instead of blocking for the kernel's default TCP timeout (~2 min).
+    if (set_nonblock(fd_, true) < 0) {
+        close(fd_);
+        fd_ = -1;
+        return false;
+    }
+
+    if (::connect(fd_, (sockaddr *)&addr, sizeof(addr)) < 0 &&
+        errno != EINPROGRESS && errno != EINTR) {
+        close(fd_);
+        fd_ = -1;
+        return false;
+    }
+
+    struct pollfd pfd = { fd_, POLLOUT, 0 };
+    int ret = poll(&pfd, 1, timeout_ms);
+    if (ret <= 0) {   // 0 = timeout, <0 = poll error
+        close(fd_);
+        fd_ = -1;
+        return false;
+    }
+
+    int err = 0;
+    socklen_t errlen = sizeof(err);
+    if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err != 0) {
+        close(fd_);
+        fd_ = -1;
+        return false;
+    }
+
+    // Restore the non-blocking mode the rest of the client relies on
     return set_nonblock(fd_, true) == 0;
 }
 

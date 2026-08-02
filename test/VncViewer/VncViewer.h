@@ -56,7 +56,7 @@ public:
 public:
     virtual ~VncClient();
 
-    bool connect(const std::string &host, int port);
+    bool connect(const std::string &host, int port, int timeout_ms = 10000);
     bool handshake(const std::string &password);
     void loop();
     void run();
