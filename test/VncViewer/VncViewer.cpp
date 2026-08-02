@@ -384,7 +384,7 @@ bool VncClient::wait_buf(size_t needed)
         int ret = poll(&pfd, 1, 16);
         if (ret < 0) { if (breakLoop) return false; continue; }
         if (ret == 0) {
-            lv_timer_handler();
+            // No data yet; re-check breakLoop while waiting
             continue;
         }
     }
@@ -621,16 +621,146 @@ void VncClient::send_pointer(int x, int y, uint8_t mask)
 
 bool VncClient::isOk()
 {
+    if (fd_ == -1) return false;
+    if (breakLoop) return false;
+    if (disp_ && !disp_->m_clientRunning) return false;
     return true;
 }
 
 void VncClient::loop()
 {
+    // NOTE: LVGL is driven solely by the main thread (Display::loop()).
+    // This worker must not call lv_timer_handler().
 
+    // Send pending FB request
+    if (need_update_) {
+        uint8_t fb_req_inc[] = { 3, 1, 0,0, 0,0, 0,0, 0,0 };
+        fb_req_inc[6] = (fbw_ >> 8) & 0xFF;
+        fb_req_inc[7] = fbw_ & 0xFF;
+        fb_req_inc[8] = (fbh_ >> 8) & 0xFF;
+        fb_req_inc[9] = fbh_ & 0xFF;
+        if (!write_exact(fd_, fb_req_inc, 10))
+            breakLoop = true;
+        need_update_ = false;
+    }
+
+    // Read message type (wait_buf handles polling + LVGL processing internally)
+    uint8_t msg_type;
+    if (!read_u8(msg_type)) {
+        if (!breakLoop) std::cerr << "Server disconnected" << std::endl;
+        breakLoop = true;
+        return;
+    }
+
+    if (msg_type == 0) {
+        uint8_t pad;
+        uint16_t nrects;
+        bool msg_ok = true;
+        if (!read_u8(pad)) { msg_ok = false; }
+        if (msg_ok) {
+            uint8_t nrbuf[2];
+            if (!read_bytes(nrbuf, 2)) { msg_ok = false; }
+            if (msg_ok) {
+                nrects = (uint16_t(nrbuf[0]) << 8) | nrbuf[1];
+                for (int i = 0; i < nrects && msg_ok; ++i) {
+                    uint8_t rect_hdr[12];
+                    if (!read_bytes(rect_hdr, 12)) { msg_ok = false; break; }
+
+                    uint16_t rx = (uint16_t(rect_hdr[0]) << 8) | rect_hdr[1];
+                    uint16_t ry = (uint16_t(rect_hdr[2]) << 8) | rect_hdr[3];
+                    uint16_t rw = (uint16_t(rect_hdr[4]) << 8) | rect_hdr[5];
+                    uint16_t rh = (uint16_t(rect_hdr[6]) << 8) | rect_hdr[7];
+                    int32_t encoding = (int32_t(rect_hdr[8]) << 24) | (int32_t(rect_hdr[9]) << 16) |
+                                       (int32_t(rect_hdr[10]) << 8) | rect_hdr[11];
+                    if (!rect_ok(rx, ry, rw, rh)) {
+                        std::cerr << "Rect out of bounds: " << rx << "," << ry << " "
+                                  << rw << "x" << rh << " (fb " << fbw_ << "x" << fbh_ << ")" << std::endl;
+                        msg_ok = false;
+                        break;
+                    }
+                    if (encoding == 0) {
+                        size_t pix_bytes = size_t(rw) * rh * bpp_;
+                        std::vector<uint8_t> pixels(pix_bytes);
+                        if (!read_bytes(pixels.data(), pix_bytes)) { msg_ok = false; break; }
+                        const uint8_t *src = pixels.data();
+                        for (int y = 0; y < rh; ++y)
+                            for (int x = 0; x < rw; ++x) {
+                                fb_[(ry + y) * fbw_ + (rx + x)] = pixel_to_32bit(src, fmt_);
+                                src += bpp_;
+                            }
+                    } else if (encoding == 1) {
+                        uint8_t copy_hdr[4];
+                        if (!read_bytes(copy_hdr, 4)) { msg_ok = false; break; }
+                        int src_x = (int(copy_hdr[0]) << 8) | copy_hdr[1];
+                        int src_y = (int(copy_hdr[2]) << 8) | copy_hdr[3];
+                        if (!rect_ok(src_x, src_y, rw, rh)) {
+                            std::cerr << "CopyRect source out of bounds" << std::endl;
+                            msg_ok = false;
+                            break;
+                        }
+                        for (int y = 0; y < rh; ++y)
+                            for (int x = 0; x < rw; ++x)
+                                fb_[(ry + y) * fbw_ + (rx + x)] = fb_[(src_y + y) * fbw_ + (src_x + x)];
+                    } else if (encoding == 7) {
+                        if (!tight_decode(rx, ry, rw, rh, bpp_)) {
+                            msg_ok = false;
+                            break;
+                        }
+                    } else {
+                        std::cerr << "Unsupported encoding: " << encoding << std::endl;
+                        msg_ok = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (!msg_ok) {
+            breakLoop = true;
+            return;
+        }
+
+        // Publish the decoded frame to the Display-owned canvas buffer and
+        // signal the main thread (Display::loop drains the event queue)
+        if (disp_) {
+            disp_->publishFrame(fb_.data(), fb_.size());
+            disp_->pushEvent(Display::EVT_UPDATE_FRAMEBUFFER);
+        }
+        need_update_ = true;
+
+    } else if (msg_type == 1) {
+        uint8_t pad;
+        uint8_t fcbuf[2], ncbuf[2];
+        if (!read_u8(pad)) { breakLoop = true; return; }
+        if (!read_bytes(fcbuf, 2)) { breakLoop = true; return; }
+        if (!read_bytes(ncbuf, 2)) { breakLoop = true; return; }
+        uint16_t ncolors = (uint16_t(ncbuf[0]) << 8) | ncbuf[1];
+        std::vector<uint8_t> cmap(ncolors * 6);
+        if (!read_bytes(cmap.data(), ncolors * 6)) { breakLoop = true; return; }
+
+    } else if (msg_type == 2) {
+        // Bell
+    } else if (msg_type == 3) {
+        uint8_t pad[3];
+        if (!read_bytes(pad, 3)) { breakLoop = true; return; }
+        uint8_t clbuf[4];
+        if (!read_bytes(clbuf, 4)) { breakLoop = true; return; }
+        uint32_t clen = (uint32_t(clbuf[0]) << 24) | (uint32_t(clbuf[1]) << 16) |
+                        (uint32_t(clbuf[2]) << 8) | clbuf[3];
+        if (clen > (1 << 20)) {
+            std::cerr << "Oversized server cut-text: " << clen << " bytes" << std::endl;
+            breakLoop = true;
+            return;
+        }
+        std::vector<uint8_t> ctext(clen);
+        if (!read_bytes(ctext.data(), clen)) { breakLoop = true; return; }
+    } else {
+        std::cerr << "Unknown message type: " << int(msg_type) << std::endl;
+        breakLoop = true;
+        return;
+    }
 }
 
-
-void VncClient::run() 
+void VncClient::run()
 {
     // Send SetEncodings
     uint8_t setenc[] = {
@@ -643,6 +773,7 @@ void VncClient::run()
     };
     if (!write_exact(fd_, setenc, sizeof(setenc))) {
         std::cerr << "Failed to send SetEncodings" << std::endl;
+        breakLoop = true;
         return;
     }
 
@@ -655,135 +786,11 @@ void VncClient::run()
     fb_req_full[9] = fbh_ & 0xFF;
     if (!write_exact(fd_, fb_req_full, 10)) {
         std::cerr << "Failed FB request" << std::endl;
+        breakLoop = true;
         return;
     }
 
-    bool running = true;
-
-    while (running) {
-        // Keep the LVGL UI alive (animations, timers, SDL events, redraw)
-        lv_timer_handler();
-
-        // Send pending FB request
-        if (need_update_) {
-            uint8_t fb_req_inc[] = { 3, 1, 0,0, 0,0, 0,0, 0,0 };
-            fb_req_inc[6] = (fbw_ >> 8) & 0xFF;
-            fb_req_inc[7] = fbw_ & 0xFF;
-            fb_req_inc[8] = (fbh_ >> 8) & 0xFF;
-            fb_req_inc[9] = fbh_ & 0xFF;
-            write_exact(fd_, fb_req_inc, 10);
-            need_update_ = false;
-        }
-
-        // Read message type (wait_buf handles polling + LVGL processing internally)
-        uint8_t msg_type;
-        if (!read_u8(msg_type)) {
-            if (!breakLoop) std::cerr << "Server disconnected" << std::endl;
-            break;
-        }
-
-        if (msg_type == 0) {
-            uint8_t pad;
-            uint16_t nrects;
-            bool msg_ok = true;
-            if (!read_u8(pad)) { msg_ok = false; }
-            if (msg_ok) {
-                uint8_t nrbuf[2];
-                if (!read_bytes(nrbuf, 2)) { msg_ok = false; }
-                if (msg_ok) {
-                    nrects = (uint16_t(nrbuf[0]) << 8) | nrbuf[1];
-                    for (int i = 0; i < nrects && msg_ok; ++i) {
-                        uint8_t rect_hdr[12];
-                        if (!read_bytes(rect_hdr, 12)) { msg_ok = false; break; }
-
-                        uint16_t rx = (uint16_t(rect_hdr[0]) << 8) | rect_hdr[1];
-                        uint16_t ry = (uint16_t(rect_hdr[2]) << 8) | rect_hdr[3];
-                        uint16_t rw = (uint16_t(rect_hdr[4]) << 8) | rect_hdr[5];
-                        uint16_t rh = (uint16_t(rect_hdr[6]) << 8) | rect_hdr[7];
-                        int32_t encoding = (int32_t(rect_hdr[8]) << 24) | (int32_t(rect_hdr[9]) << 16) |
-                                           (int32_t(rect_hdr[10]) << 8) | rect_hdr[11];
-                        if (!rect_ok(rx, ry, rw, rh)) {
-                            std::cerr << "Rect out of bounds: " << rx << "," << ry << " "
-                                      << rw << "x" << rh << " (fb " << fbw_ << "x" << fbh_ << ")" << std::endl;
-                            msg_ok = false;
-                            break;
-                        }
-                        if (encoding == 0) {
-                            size_t pix_bytes = size_t(rw) * rh * bpp_;
-                            std::vector<uint8_t> pixels(pix_bytes);
-                            if (!read_bytes(pixels.data(), pix_bytes)) { msg_ok = false; break; }
-                            const uint8_t *src = pixels.data();
-                            for (int y = 0; y < rh; ++y)
-                                for (int x = 0; x < rw; ++x) {
-                                    fb_[(ry + y) * fbw_ + (rx + x)] = pixel_to_32bit(src, fmt_);
-                                    src += bpp_;
-                                }
-                        } else if (encoding == 1) {
-                            uint8_t copy_hdr[4];
-                            if (!read_bytes(copy_hdr, 4)) { msg_ok = false; break; }
-                            int src_x = (int(copy_hdr[0]) << 8) | copy_hdr[1];
-                            int src_y = (int(copy_hdr[2]) << 8) | copy_hdr[3];
-                            if (!rect_ok(src_x, src_y, rw, rh)) {
-                                std::cerr << "CopyRect source out of bounds" << std::endl;
-                                msg_ok = false;
-                                break;
-                            }
-                            for (int y = 0; y < rh; ++y)
-                                for (int x = 0; x < rw; ++x)
-                                    fb_[(ry + y) * fbw_ + (rx + x)] = fb_[(src_y + y) * fbw_ + (src_x + x)];
-                        } else if (encoding == 7) {
-                            if (!tight_decode(rx, ry, rw, rh, bpp_)) {
-                                msg_ok = false;
-                                break;
-                            }
-                        } else {
-                            std::cerr << "Unsupported encoding: " << encoding << std::endl;
-                            msg_ok = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (!msg_ok) break;
-
-            // The VNC framebuffer backs the LVGL canvas directly
-            #if 0
-            lv_obj_invalidate(s_canvas);
-            #else
-            disp_->pushEvent(Display::EVT_UPDATE_FRAMEBUFFER);
-            lv_async_call(Display::OnEvent, disp_);
-            #endif
-            need_update_ = true;
-
-        } else if (msg_type == 1) {
-            uint8_t pad;
-            uint8_t fcbuf[2], ncbuf[2];
-            if (!read_u8(pad)) break;
-            if (!read_bytes(fcbuf, 2)) break;
-            if (!read_bytes(ncbuf, 2)) break;
-            uint16_t ncolors = (uint16_t(ncbuf[0]) << 8) | ncbuf[1];
-            std::vector<uint8_t> cmap(ncolors * 6);
-            if (!read_bytes(cmap.data(), ncolors * 6)) break;
-
-        } else if (msg_type == 2) {
-            // Bell
-        } else if (msg_type == 3) {
-            uint8_t pad[3];
-            if (!read_bytes(pad, 3)) break;
-            uint8_t clbuf[4];
-            if (!read_bytes(clbuf, 4)) break;
-            uint32_t clen = (uint32_t(clbuf[0]) << 24) | (uint32_t(clbuf[1]) << 16) |
-                            (uint32_t(clbuf[2]) << 8) | clbuf[3];
-            if (clen > (1 << 20)) {
-                std::cerr << "Oversized server cut-text: " << clen << " bytes" << std::endl;
-                break;
-            }
-            std::vector<uint8_t> ctext(clen);
-            if (!read_bytes(ctext.data(), clen)) break;
-        } else {
-            std::cerr << "Unknown message type: " << int(msg_type) << std::endl;
-            break;
-        }
-    }
+    while (isOk())
+        loop();
 }
 

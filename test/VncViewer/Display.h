@@ -5,6 +5,7 @@
 
 #include <string>
 #include <queue>
+#include <vector>
 #include <memory>
 #include <atomic>
 #include <SDL2/SDL.h>
@@ -67,8 +68,17 @@ protected:
     static int VncClientWorker(void* data);
     static void OnEvent(void* userData);
 
+    // Terminal-state handler: destroys the LVGL display so that
+    // lv_display_get_default() becomes NULL and main() exits its loop.
+    static void closeDisplay(Display* display);
+
     void pushEvent(EventType event);
     EventType popEvent();
+    bool hasEvents() const;
+
+    // Copy the decoded frame from the VNC worker into the canvas buffer
+    // under m_frameMutex (called from the worker thread).
+    void publishFrame(const uint32_t *src, size_t count);
 
 protected:
     //
@@ -95,6 +105,12 @@ protected:
 
     std::queue<EventType> m_eventQueue;
     SDL_mutex* m_eventMutex;
+
+    // Framebuffer backing the LVGL canvas. Guarded by m_frameMutex:
+    // the VNC worker copies into it (publishFrame), the main thread
+    // renders it inside Display::loop().
+    std::vector<uint32_t> m_frameBuf;
+    SDL_mutex* m_frameMutex;
 
 
 };

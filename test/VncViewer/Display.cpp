@@ -2,6 +2,7 @@
 //
 
 #include <iostream>
+#include <algorithm>
 #include "Display.h"
 #include "VncViewer.h"
 
@@ -27,13 +28,17 @@ Display::Display()
     , m_password("")
     , m_eventQueue()
     , m_eventMutex(nullptr)
+    , m_frameBuf()
+    , m_frameMutex(nullptr)
 {
     m_eventMutex = SDL_CreateMutex();
+    m_frameMutex = SDL_CreateMutex();
 }
 
 Display::~Display()
 {
     SDL_DestroyMutex(m_eventMutex);
+    SDL_DestroyMutex(m_frameMutex);
 }
 
 
@@ -99,10 +104,35 @@ bool Display::begin(std::string& host, int port, std::string& password)
 
 bool Display::loop()
 {
+    // Process events posted by the VNC worker thread on the main thread.
+    // (The worker must not call lv_async_call: it is not thread-safe here.)
+    while (hasEvents())
+        OnEvent(this);
+
+    // Render under m_frameMutex so the VNC worker's publishFrame() cannot
+    // overwrite the canvas buffer while LVGL is redrawing it.
+    SDL_LockMutex(m_frameMutex);
     uint32_t ms = lv_timer_handler();
+    SDL_UnlockMutex(m_frameMutex);
     lv_sleep_ms(ms);
 
     return true;
+}
+
+void Display::publishFrame(const uint32_t *src, size_t count)
+{
+    SDL_LockMutex(m_frameMutex);
+    size_t n = std::min(count, m_frameBuf.size());
+    std::copy(src, src + n, m_frameBuf.begin());
+    SDL_UnlockMutex(m_frameMutex);
+}
+
+bool Display::hasEvents() const
+{
+    SDL_LockMutex(m_eventMutex);
+    bool has = !m_eventQueue.empty();
+    SDL_UnlockMutex(m_eventMutex);
+    return has;
 }
 
 int Display::VncClientWorker(void* data)
@@ -115,66 +145,78 @@ int Display::VncClientWorker(void* data)
     {
         std::cout << "Connected to " << display->m_hostAddr << ":" << display->m_hostPort << std::endl;
         display->pushEvent(Display::EVT_CONNECTED);
-        lv_async_call(Display::OnEvent, display);
 
         if (clientPtr->handshake(display->m_password))
         {
             display->pushEvent(Display::EVT_NEGOTIATION_ESTABLISHED);
-            lv_async_call(Display::OnEvent, display);
 
             //
             std::cout << "Enter VncClient::run()" << std::endl;
-            #if 0
-            while (clientPtr && clientPtr->isOk())
-                clientPtr->loop();
-            #else
             clientPtr->run();
-            #endif
             std::cout << "Exit VncClient::run()" << std::endl;            
         }
         else
         {
             std::cerr << "Handshake failed" << std::endl;
             display->pushEvent(Display::EVT_HANDSHAKE_FAILED);
-            lv_async_call(Display::OnEvent, display);
         }
     } 
     else
     {
         std::cerr << "Connection failed" << std::endl;
         display->pushEvent(Display::EVT_CONNECTION_FAILED);
-        lv_async_call(Display::OnEvent, display);
     }
 
     display->pushEvent(Display::EVT_DISCONNECTED);
-    lv_async_call(Display::OnEvent, display);
 
     display->m_clientRunning = false;
+
+    return 0;
 }
 
 void Display::OnEvent(void* userData)
 {
     Display* display = reinterpret_cast<Display *>(userData);
-    static int count = 0;
     switch (display->popEvent())
     {
     case Display::EVT_CONNECTION_FAILED:
-
+    case Display::EVT_HANDSHAKE_FAILED:
+    case Display::EVT_DISCONNECTED:
+        closeDisplay(display);
         break;
 
     case Display::EVT_NEGOTIATION_ESTABLISHED: {
         auto& ptr = display->m_clientPtr;
         lv_display_set_resolution(display->m_disp, ptr->fbw_, ptr->fbh_);
-        create_vnc_ui(ptr->fb_.data(), ptr->fbw_, ptr->fbh_);
+        // Size/init the canvas buffer under the frame mutex so it cannot
+        // race with the worker's publishFrame(); never resized afterwards.
+        SDL_LockMutex(display->m_frameMutex);
+        display->m_frameBuf.assign(size_t(ptr->fbw_) * ptr->fbh_, 0xFF000000);
+        SDL_UnlockMutex(display->m_frameMutex);
+        create_vnc_ui(display->m_frameBuf.data(), ptr->fbw_, ptr->fbh_);
         std::cout << "Screen: " << ptr->fbw_ << " x " << ptr->fbh_ << std::endl;
         break;
     }
 
     case Display::EVT_UPDATE_FRAMEBUFFER: {
-        std::cout << "update framebuffer(" << count++ << ")\n";
+        //std::cout << "update framebuffer(" << count++ << ")\n";
         lv_obj_invalidate(s_canvas);
         break;
     }
+
+    default:
+        break;
+    }
+}
+
+void Display::closeDisplay(Display* display)
+{
+    if (display->m_disp) {
+        // Deleting the (only) display clears the LVGL default display,
+        // so main()'s loop condition (lv_display_get_default() != NULL)
+        // becomes false and the application exits.
+        lv_display_delete(display->m_disp);
+        display->m_disp = nullptr;
     }
 }
 
@@ -285,7 +327,6 @@ void Display::hide_timer_cb(lv_timer_t *timer)
 void Display::ui_event_handler(lv_event_t *e) 
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *target = lv_event_get_target_obj(e);
 
     // Any click on the UI toggles the auto-hiding tab bar
     if (code == LV_EVENT_CLICKED) {
@@ -295,6 +336,7 @@ void Display::ui_event_handler(lv_event_t *e)
 
     // Forward pointer events on the VNC canvas to the remote server
 #if SUPPORT_POINTER_FORWARDING
+    lv_obj_t *target = lv_event_get_target_obj(e);
     Display& display = Display::Get();
     VncClient* client = display.m_clientPtr.get();
     if (client)
@@ -332,7 +374,7 @@ void Display::create_vnc_ui(void *buf, int32_t w, int32_t h)
     s_canvas = lv_canvas_create(screen);
     lv_canvas_set_buffer(s_canvas, buf, w, h, LV_COLOR_FORMAT_ARGB8888);
     lv_obj_align(s_canvas, LV_ALIGN_TOP_LEFT, 0, 0);
-    lv_obj_add_flag(s_canvas, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(s_canvas, true);
     lv_obj_add_event_cb(s_canvas, ui_event_handler, LV_EVENT_ALL, NULL);
 
     // ----------------------------------------------------
@@ -356,7 +398,7 @@ void Display::create_vnc_ui(void *buf, int32_t w, int32_t h)
     lv_obj_set_pos(s_tab_bar, 0, 0);
     lv_obj_set_style_bg_color(s_tab_bar, lv_color_hex(0x1ABC9C), 0);
     lv_obj_set_style_pad_all(s_tab_bar, 5, 0);
-    lv_obj_add_flag(s_tab_bar, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_clickable(s_tab_bar, true);
     lv_obj_add_event_cb(s_tab_bar, ui_event_handler, LV_EVENT_ALL, NULL);
 
     for (int i = 0; i < 3; i++) {
