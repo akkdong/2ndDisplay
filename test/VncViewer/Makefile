@@ -16,7 +16,7 @@ CXXFLAGS = -Wall -Wextra -O3 -g -std=c++17 -I. -I./lvgl  $(shell pkg-config --cf
 LDFLAGS = -lSDL2 -lm -lstdc++ -ljpeg -lz $(shell pkg-config --libs sdl2)
 
 # LVGL 공식 Make 설정 가져오기 (CSRCS 변수 활성화)
-LVGL_DIR_NAME = lvgl
+LVGL_DIR_NAME = ./
 include $(LVGL_DIR_NAME)/lvgl-minimal.mk
 
 # 소스 파일 분류
