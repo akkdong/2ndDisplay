@@ -1,0 +1,16 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "win-base",
+            "generator": "Visual Studio 18 2026",
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "win-build",
+            "configurePreset": "win-base"
+        }
+    ]
+}
