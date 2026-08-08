@@ -1,0 +1,100 @@
+menu "Board Config (GUITION JC-4880P443)"
+
+    choice BSP_LCD_COLOR_FORMAT
+        prompt "LCD color format"
+        default BSP_LCD_COLOR_FORMAT_RGB565
+        
+        config BSP_LCD_COLOR_FORMAT_RGB565
+            bool "RGB565"
+        config BSP_LCD_COLOR_FORMAT_RGB888
+            bool "RGB888"
+    endchoice
+
+    config BSP_LCD_WIDTH
+        int "LCD Width"
+        default 480
+
+    config BSP_LCD_HEIGHT
+        int "LCD Height"
+        default 800
+
+    config BSP_LCD_DPI_CLK
+        int "LCD DPI Clock"
+        default 34
+
+    config BSP_LCD_HSYNC
+        int "LCD HSync"
+        default 12
+
+    config BSP_LCD_HBP
+        int "LCD HBP"
+        default 42
+
+    config BSP_LCD_HFP
+        int "LCD HFP"
+        default 42
+
+    config BSP_LCD_VSYNC
+        int "LCD VSync"
+        default 2
+
+    config BSP_LCD_VBP
+        int "LCD VBP"
+        default 8
+
+    config BSP_LCD_VFP
+        int "LCD VFP"
+        default 166
+
+    config BSP_LCD_RST_PIN 
+        int "LCD_RST_PIN "
+        default 5
+
+    config BSP_LCD_BKLIGHT_PIN
+        int "LCD_BKLIGHT_PIN"
+        default 23
+
+    config BSP_MIPI_DSI_LANE_NUM
+        int "MIPI_DSI_LANE_NUM"
+        default 2
+
+    config BSP_MIPI_DSI_LANE_RATE
+        int "MIPI_DSI_LANE_RATE"
+        default 1000
+
+    config BSP_MIPI_PHY_LDO_CHAN
+        int "MIPI_PHY_LDO_CHAN"
+        default 3
+
+    config BSP_MIPI_PHY_LDO_MV
+        int "MIPI_PHY_LDO_MV"
+        default 2500
+
+    config BSP_TOUCH_I2C_SDA
+        int "TOUCH_I2C_SDA"
+        default 7
+
+    config BSP_TOUCH_I2C_SCL
+        int "TOUCH_I2C_SCL"
+        default 8
+
+    config BSP_TOUCH_I2C_SPEED
+        int "TOUCH_I2C_SPEED"
+        default 400000
+
+    config BSP_TOUCH_RST
+        int "TOUCH_RST"
+        default 22
+
+    config BSP_TOUCH_INT
+        int "TOUCH_INT"
+        default 21
+
+    config BSP_DISPLAY_BRIGHTNESS_LEDC_CH
+        int "LEDC channel index"
+        default 1
+        range 0 7
+        help
+            LEDC channel is used to generate PWM signal that controls display brightness.
+            Set LEDC index that should be used.
+endmenu
