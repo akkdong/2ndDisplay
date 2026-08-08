@@ -19,6 +19,7 @@ extern "C"
 {
 #endif
 
+
 /**
  * 
  */
@@ -41,9 +42,9 @@ typedef struct vnc_display
  *
  */
 
-void vnc_display_start(void (* scrn_init_cb)(vnc_display_t* vnc));
+vnc_display_t* vnc_display_start(void);
 
-bool vnc_display_lock(bool lock);
+bool vnc_display_lock(vnc_display_t* disp, bool lock);
 
 
 #ifdef __cplusplus

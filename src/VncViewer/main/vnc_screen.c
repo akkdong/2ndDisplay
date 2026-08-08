@@ -327,11 +327,49 @@ static void vnc_create_layer_conn(vnc_screen_t* scrn)
  * 
  * 
  */
-
-void vnc_screen_init(vnc_display_t* vnc_disp)
+vnc_screen_t* vnc_screen_init(vnc_screen_config_t* cfg)
 {
-    ESP_LOGI(TAG, "Initialize VNC screen...");
-    if (vnc_display_lock(true)) 
+    ESP_LOGI(TAG, "[S] Initialize VNC screen...");
+
+    vnc_display_t* disp = cfg->disp;
+    //vnc_display_lock(disp, true);
+    {
+        //
+        memset(&vnc_scrn, 0, sizeof(vnc_scrn));
+
+        //
+        vnc_scrn.disp_handle = disp;
+        
+
+        //
+        vnc_scrn.create = vnc_screen_create;
+        vnc_scrn.destroy = NULL;
+        
+        //
+        vnc_scrn.on_connect = cfg->on_connect;
+    }
+    //vnc_display_lock(disp, false);
+    ESP_LOGI(TAG, "[E] Initialize VNC screen...");
+
+    return &vnc_scrn;
+}
+
+/**
+ * 
+ */
+vnc_screen_t* vnc_screen_get_handle()
+{
+    return &vnc_scrn;
+}
+
+
+/**
+ * 
+ */
+void vnc_screen_create(vnc_screen_t* scrn)
+{
+    ESP_LOGI(TAG, "Create VNC screen...");
+    if (vnc_display_lock(scrn->disp_handle, true)) 
     {
         //
         /*
@@ -339,7 +377,7 @@ void vnc_screen_init(vnc_display_t* vnc_disp)
         */
 
         //
-        vnc_scrn.active_scrn = lv_screen_active(); // v9: lv_scr_act() 대신 사용 권장
+        vnc_scrn.active_scrn = lv_screen_active();
         // <<<<<<
         /*
         vnc_scrn.disp_width = lv_display_get_horizontal_resolution(NULL);
@@ -350,30 +388,29 @@ void vnc_screen_init(vnc_display_t* vnc_disp)
         vnc_scrn.disp_height = lv_obj_get_height(vnc_scrn.active_scrn);
         // >>>>>>
         ESP_LOGI(TAG, "Screen Dimension: %d x %d", vnc_scrn.disp_width, vnc_scrn.disp_height);
-        
 
-        lv_obj_clean(vnc_scrn.active_scrn);
-        lv_obj_set_style_bg_color(vnc_scrn.active_scrn, lv_color_hex(0x0E0E1E), 0);
+        lv_obj_clean(scrn->active_scrn);
+        lv_obj_set_style_bg_color(scrn->active_scrn, lv_color_hex(0x0E0E1E), 0);
 
-        vnc_create_layer_canvas(&vnc_scrn);
-        vnc_create_layer_main(&vnc_scrn);
-        vnc_create_layer_wifi(&vnc_scrn);
-        vnc_create_layer_conn(&vnc_scrn);
+        vnc_create_layer_canvas(scrn);
+        vnc_create_layer_main(scrn);
+        vnc_create_layer_wifi(scrn);
+        vnc_create_layer_conn(scrn);
 
         // <<<<<<
         /*
          * 9.6 --> 9.5
          * 
-        lv_obj_set_scrollable(vnc_scrn.active_scrn, false);
+        lv_obj_set_scrollable(scrn->active_scrn, false);
         */
         // ======
-        lv_obj_remove_flag(vnc_scrn.active_scrn, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(scrn->active_scrn, LV_OBJ_FLAG_SCROLLABLE);
         // >>>>>>
 
-        lv_obj_add_event_cb(vnc_scrn.active_scrn, vnc_size_changed, LV_EVENT_SIZE_CHANGED, 0);
+        lv_obj_add_event_cb(scrn->active_scrn, vnc_size_changed, LV_EVENT_SIZE_CHANGED, 0);
         
         //
-        vnc_display_lock(false);
+        vnc_display_lock(scrn->disp_handle, false);
     }
 }
 
@@ -383,18 +420,21 @@ void vnc_screen_init(vnc_display_t* vnc_disp)
  * 
  */
 
-void vnc_log_append(const char* text)
+void vnc_log_append(vnc_screen_t* scrn, const char* text)
 {
-    vnc_display_lock(true);
+    vnc_display_lock(scrn->disp_handle, true);
     {
-        lv_obj_t* ta = lv_obj_find_by_name(vnc_scrn.active_scrn, "log");
+        lv_obj_t* ta = lv_obj_find_by_name(scrn->active_scrn, "log");
         if (ta)
             append_log_with_limit(ta, text);
     }
-    vnc_display_lock(false);
+    vnc_display_lock(scrn->disp_handle, false);
 }
 
-void vnc_log_printf(const char* format, ...)
+/**
+ * 
+ */
+void vnc_log_printf(vnc_screen_t* scrn, const char* format, ...)
 {
     va_list args;
 
@@ -402,5 +442,13 @@ void vnc_log_printf(const char* format, ...)
     vsnprintf(log_buf, sizeof(log_buf), format, args);
     va_end(args);
 
-    vnc_log_append(log_buf);
+    vnc_log_append(scrn, log_buf);
+}
+
+/**
+ * 
+ */
+void vnc_log_clear(vnc_screen_t* scrn)
+{
+    
 }

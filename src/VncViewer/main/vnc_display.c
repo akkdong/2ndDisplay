@@ -125,21 +125,21 @@ static void vnc_lvgl_task(void* arg)
  * 
  */
 
-void vnc_display_start(void (* scrn_init_cb)(vnc_display_t* vnc))
+vnc_display_t* vnc_display_start(void)
 {
     // 1. Hardware driver execution and handle collection
     bsp_display_init(&panel_handle, &touch_handle);
     
     if (panel_handle == NULL) {
         ESP_LOGE(TAG, "LCD initialisation failed! Aborting.");
-        return;
+        return NULL;
     }
 
     // 2. Creating a mutex for multithreaded synchronization
     lvgl_mux = xSemaphoreCreateMutex();
     if (lvgl_mux == NULL) {
         ESP_LOGE(TAG, "Failed to create LVGL Mutex");
-        return;
+        return NULL;
     }
 
     // 3. LVGL v9 Core System Initialization
@@ -161,7 +161,7 @@ void vnc_display_start(void (* scrn_init_cb)(vnc_display_t* vnc))
 
     if (buf1 == NULL || buf2 == NULL) {
         ESP_LOGE(TAG, "Failed to get frame buffers from DSI panel!");
-        return;
+        return NULL;
     }
 
     // 7. Force Direct Mode setting for optimal DSI operation
@@ -171,7 +171,7 @@ void vnc_display_start(void (* scrn_init_cb)(vnc_display_t* vnc))
     trans_sem = xSemaphoreCreateCounting(1, 0);
     if (trans_sem == NULL) {
         ESP_LOGE(TAG, "Failed to create DSI trans semaphore");
-        return;
+        return NULL;
     }
 
     esp_lcd_dpi_panel_event_callbacks_t cbs = {
@@ -199,11 +199,10 @@ void vnc_display_start(void (* scrn_init_cb)(vnc_display_t* vnc))
     vnc_disp.touch_handle = touch_handle;
     vnc_disp.lvgl_mux = lvgl_mux;
 
-    scrn_init_cb(&vnc_disp);
-
-
     // 11. Final LVGL dedicated scheduler execution background task startup (Core 1 recommended)
     xTaskCreatePinnedToCore(vnc_lvgl_task, "LVGL_Task", 1024 * 8, NULL, 5, NULL, 1);
+
+    return &vnc_disp;
 }
 
 
@@ -211,7 +210,7 @@ void vnc_display_start(void (* scrn_init_cb)(vnc_display_t* vnc))
  * 
  */
 
- bool vnc_display_lock(bool lock)
+ bool vnc_display_lock(vnc_display_t* disp, bool lock)
  {
     if (lock)
         return xSemaphoreTake(lvgl_mux, portMAX_DELAY) == pdTRUE;

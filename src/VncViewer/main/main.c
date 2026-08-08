@@ -24,6 +24,7 @@
 
 static const char* TAG = "Main";
 
+static vnc_screen_t* g_scrn;
 
 
 /**
@@ -80,7 +81,7 @@ static void print_scan_result()
     
     if (number == 0) {
         ESP_LOGW(TAG, "발견된 AP가 없습니다.");
-        vnc_log_append("AP was not found.\n");
+        vnc_log_append(g_scrn, "AP was not found.\n");
         return;
     }
 
@@ -91,7 +92,7 @@ static void print_scan_result()
         for (int i = 0; i < number; i++) {
             ESP_LOGI(TAG, "SSID %s, RSSI: %d, Auth: %d",
                 ap_info[i].ssid, ap_info[i].rssi, ap_info[i].authmode);
-            vnc_log_printf("[%s] %d%%, %s\n",
+            vnc_log_printf(g_scrn, "[%s] %d%%, %s\n",
                 ap_info[i].ssid, 
                 rssi_to_percentage_linear(ap_info[i].rssi), 
                 get_auth_mode_name(ap_info[i].authmode));
@@ -204,41 +205,41 @@ static void wifi_and_ip_event_handler(void* arg, esp_event_base_t event_base,
     if (event_base == WIFI_EVENT) {
         switch (event_id) {
             case WIFI_EVENT_STA_START:
-                vnc_log_append("WiFi started\n");
+                vnc_log_append(g_scrn, "WiFi started\n");
                 // Wi-Fi 가동 시작됨
                 if (has_saved_credentials()) {
                     // 저장된 정보가 있다면 호스트/슬레이브 드라이버가 자동으로 연결을 시도함
                     g_wifi_state = WIFI_STATE_CONNECTING;
                     ESP_LOGI("WIFI", "저장된 접속 정보가 있어 자동으로 연결을 시도합니다...");
-                    vnc_log_append("  --> connecting...\n");
+                    vnc_log_append(g_scrn, "  --> connecting...\n");
                 } else {
                     g_wifi_state = WIFI_STATE_DISCONNECTED;
                     ESP_LOGI("WIFI", "저장된 접속 정보가 없습니다. 대기 상태.");                    
-                    vnc_log_append("  --> standby\n");
+                    vnc_log_append(g_scrn, "  --> standby\n");
 
                     //
                     wifi_scan_config_t scan_config = { .show_hidden = true };
                     esp_wifi_scan_start(&scan_config, false);
-                    vnc_log_append("Scan started...\n");
+                    vnc_log_append(g_scrn, "Scan started...\n");
                 }
                 break;
 
             case WIFI_EVENT_STA_CONNECTED:
                 // AP와 링크는 연결되었으나 아직 IP는 없는 상태
                 g_wifi_state = WIFI_STATE_CONNECTING; 
-                vnc_log_append("WiFi connected\n");
+                vnc_log_append(g_scrn, "WiFi connected\n");
                 break;
 
             case WIFI_EVENT_STA_DISCONNECTED:
                 // 연결이 끊겼거나 실패함
                 g_wifi_state = WIFI_STATE_DISCONNECTED;
                 ESP_LOGW("WIFI", "Wi-Fi 연결 해제됨 (또는 연결 실패)");
-                vnc_log_append("WiFi diconnected\n");
+                vnc_log_append(g_scrn, "WiFi diconnected\n");
                 break;
                 
             case WIFI_EVENT_SCAN_DONE:
                 ESP_LOGI("WIFI", "스캔 완료 이벤트 수신");
-                vnc_log_append("Scan completed\n");
+                vnc_log_append(g_scrn, "Scan completed\n");
                 print_scan_result();
                 break;
         }
@@ -258,17 +259,31 @@ static void wifi_and_ip_event_handler(void* arg, esp_event_base_t event_base,
                     snprintf(ip, sizeof(ip), IPSTR, IP2STR(&ip_info.ip));
             }
 
-            vnc_log_printf("Got IP: %s\n", ip);
+            vnc_log_printf(g_scrn, "Got IP: %s\n", ip);
 
 
             //
             wifi_scan_config_t scan_config = { .show_hidden = true };
             esp_wifi_scan_start(&scan_config, false);
-            vnc_log_append("Scan Started...\n");
+            vnc_log_append(g_scrn, "Scan Started...\n");
         }
     }
 }
 
+
+
+
+
+void vnc_start_client(vnc_screen_t* scrn, const char* addr, uint16_t port)
+{
+    /*
+    vnc_connect_info_t* cinfo = (vnc_connect_info_t *)arg;
+
+    vnc_client_t* client = malloc(vcn_client_t);
+    vnc_client_init(client);
+    vnc_client_start(client, cinfo->addr, cinfo->port);
+    */
+}
 
 
 /**
@@ -286,7 +301,22 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);    
 
     // Initialize BSP/LVGL display & Start LVGL Task
-    vnc_display_start(vnc_screen_init);
+    vnc_display_t* vnc_disp = vnc_display_start();
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    //
+    vnc_screen_config_t vnc_cfg = {
+        .on_connect = vnc_start_client,
+
+        //
+        // ...
+        //
+        .disp = vnc_disp,
+    };
+
+    vnc_screen_t* vnc_scrn = vnc_screen_init(&vnc_cfg);
+    g_scrn = vnc_scrn;
+    vnc_scrn->create(g_scrn);
 
     // turn on backlight: brightness 30%
     bsp_display_brightness_set(30);  
@@ -398,4 +428,7 @@ void app_main(void)
     // 메모리 해제
     free(ap_info);
     #endif
+
+    // main task
+    // ...
 }
