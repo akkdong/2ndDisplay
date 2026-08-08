@@ -6,6 +6,7 @@ set(
         "main.c" 
         "bsp_display.c"
         "vnc_display.c"
+        "vnc_screen.c"
 )
 
 idf_component_register(

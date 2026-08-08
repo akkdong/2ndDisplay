@@ -23,6 +23,7 @@ static SemaphoreHandle_t trans_sem = NULL;
 
 
 
+
 /**
  * @brief DSI Frame Transmission Complete (VSYNC) Interrupt Callback (ISR Context)
  *          A semaphore is issued whenever a frame is successfully transmitted to the LCD.
