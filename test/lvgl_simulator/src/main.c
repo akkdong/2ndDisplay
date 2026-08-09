@@ -25,6 +25,8 @@
 #include <SDL.h>
 
 #include "hal/hal.h"
+#include "vnc_connect_popup.h"
+#include "wifi_setting_popup.h"
 
 /*********************
  *      DEFINES
@@ -126,7 +128,7 @@ typedef struct vnc_screen
     lv_obj_t* layer_wifi;
     lv_obj_t* layer_conn;
 
-    
+
 } vnc_screen_t;
 
 vnc_screen_t vnc;
@@ -151,12 +153,12 @@ void vnc_shift_layer(lv_obj_t* layer, int pos)
     lv_anim_init(&anim);
     lv_anim_set_var(&anim, layer);
     lv_anim_set_exec_cb(&anim, (lv_anim_exec_xcb_t)lv_obj_set_x);
-    
+
     // Smooth movement from current location to target location
     lv_anim_set_values(&anim, lv_obj_get_x(layer), pos);
     lv_anim_set_duration(&anim, 500);
     lv_anim_set_path_cb(&anim, lv_anim_path_ease_out);
-    
+
     lv_obj_set_style_bg_opa(layer, LV_OPA_0, 0);
     lv_anim_set_completed_cb(&anim, vnc_shift_ready);
     lv_anim_start(&anim);
@@ -188,6 +190,21 @@ static void vnc_event_handler(lv_event_t* evt)
     }
 }
 
+static void vnc_handler_on_connect(const char* addr, uint16_t port, const char* pass)
+{
+    printf("Connect To: %s#%u (%s)\n", addr, port, pass);
+}
+
+static void on_clicked_wifi(lv_event_t* evt)
+{
+    show_wifi_setting_popup();
+}
+
+static void on_clicked_connect(lv_event_t* evt)
+{
+    show_vnc_connect_popup(NULL, 0, vnc_handler_on_connect);
+}
+
 static void vnc_size_changed(lv_event_t* evt)
 {
 
@@ -195,7 +212,7 @@ static void vnc_size_changed(lv_event_t* evt)
 
 
 static void vnc_create_layer_canvas(vnc_screen_t* scrn)
-{    
+{
     //scrn->layer_canvas = lv_canvas_create(scrn->active_scrn);
     scrn->layer_canvas = NULL;
 }
@@ -301,7 +318,10 @@ static void vnc_create_layer_main(vnc_screen_t* scrn)
     lv_obj_t * btn_wifi = lv_button_create(bottom_container); // v9: lv_btn_create -> lv_button_create
     lv_obj_set_flex_flow(btn_wifi, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(btn_wifi, 12, 0);
+    /*
     lv_obj_add_event_cb(btn_wifi, vnc_event_handler, LV_EVENT_CLICKED, (void *)EVT_SHOW_WIFI);
+    */
+    lv_obj_add_event_cb(btn_wifi, on_clicked_wifi, LV_EVENT_CLICKED, (void *)EVT_SHOW_WIFI);
 
     lv_obj_t * wifi_icon = lv_image_create(btn_wifi);
     lv_image_set_src(wifi_icon, LV_SYMBOL_WIFI);
@@ -312,7 +332,10 @@ static void vnc_create_layer_main(vnc_screen_t* scrn)
     lv_obj_t * btn_connect = lv_button_create(bottom_container);
     lv_obj_set_flex_flow(btn_connect, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(btn_connect, 12, 0);
+    /*
     lv_obj_add_event_cb(btn_connect, vnc_event_handler, LV_EVENT_CLICKED, (void *)EVT_SHOW_CONN);
+    */
+    lv_obj_add_event_cb(btn_connect, on_clicked_connect, LV_EVENT_CLICKED, (void *)EVT_SHOW_CONN);
 
     lv_obj_t * connect_icon = lv_image_create(btn_connect);
     lv_image_set_src(connect_icon, LV_SYMBOL_PLAY);

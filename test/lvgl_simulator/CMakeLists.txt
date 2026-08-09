@@ -81,6 +81,8 @@ if(USE_FREERTOS)
 else()
     list(APPEND MAIN_SOURCES src/main.c)
     list(APPEND MAIN_SOURCES src/logo.c)
+    list(APPEND MAIN_SOURCES src/vnc_connect_popup.c)
+    list(APPEND MAIN_SOURCES src/wifi_setting_popup.c)
 endif()
 
 
