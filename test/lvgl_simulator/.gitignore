@@ -2,11 +2,11 @@
 build/
 bin/
 
+# Ignore UI folder, this should be commited in its own repository
+ui/
+
 # Ignore all dot folders, with below exceptions
 .*/
 
 # VSCode
 .vscode
-
-# MacOS file
-.DS_Store

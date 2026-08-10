@@ -112,6 +112,25 @@ void shake_button(lv_obj_t * btn)
 /**
  *
  */
+static void msgbox_cleanup_event_cb(lv_event_t * e)
+{
+    lv_obj_t * mbox = lv_event_get_current_target(e);
+
+    if(lv_event_get_code(e) == LV_EVENT_DELETE)
+    {
+        // CLEANUP
+        vnc_connect_popup_t* popup = (vnc_connect_popup_t *)lv_event_get_user_data(e);
+        if(popup && popup->kb)
+        {
+            lv_obj_delete(popup->kb);
+            popup->kb = NULL;
+        }
+    }
+}
+
+/**
+ *
+ */
 static void ta_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
@@ -157,17 +176,14 @@ static void msgbox_event_cb(lv_event_t * e)
         {
             shake_button(btn);
             lv_obj_set_style_bg_color(btn, lv_color_hex(0xD32F2F), 0);
+
+            //
             return;
         }
     }
 
     // Popup and Keyboard Cleanup (Memory Free)
     lv_msgbox_close(msgbox);
-    if(popup->kb)
-    {
-        lv_obj_delete(popup->kb);
-        popup->kb = NULL;
-    }
 }
 
 
@@ -192,6 +208,7 @@ void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callb
     lv_msgbox_add_title(mbox, "Connect To Server");
     lv_msgbox_add_close_button(mbox);
     lv_obj_set_user_data(mbox, &popup);
+    lv_obj_add_event_cb(mbox, msgbox_cleanup_event_cb, LV_EVENT_DELETE, &popup);
     lv_obj_set_style_bg_color(mbox, lv_color_hex(0x181818), 0);
 
     // layout message-box
@@ -304,7 +321,7 @@ void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callb
     lv_obj_t* footer = lv_msgbox_get_footer(mbox);
     if (footer)
     {
-        lv_obj_set_style_bg_color(footer, lv_color_hex(0xD0D0D0), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(footer, lv_color_hex(0x202020), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(footer, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_set_style_pad_all(footer, 10, LV_PART_MAIN);
 

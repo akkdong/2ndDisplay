@@ -298,8 +298,17 @@ static void vnc_create_layer_main(vnc_screen_t* scrn)
     */
     lv_obj_align(btn_clear, LV_ALIGN_BOTTOM_RIGHT, -12, -12);
     lv_obj_set_style_opa(btn_clear, 120, LV_PART_MAIN);
+    // <<<<<<
+    /*
+     * 9.6 --> 9.5
+     *
     lv_obj_set_scroll_chain(btn_clear, false);
     lv_obj_set_floating(btn_clear, true);
+    */
+    // ======
+    lv_obj_remove_flag(btn_clear, LV_OBJ_FLAG_SCROLL_CHAIN);
+    lv_obj_add_flag(btn_clear, LV_OBJ_FLAG_FLOATING);
+    // >>>>>>
     lv_obj_add_event_cb(btn_clear, clear_log_event_cb, LV_EVENT_CLICKED, log_ta);
 
     lv_textarea_set_text(log_ta, "VNC Viewer started!\n");
@@ -399,7 +408,21 @@ static void vnc_create_layer_conn(vnc_screen_t* scrn)
 
 static void vnc_init_screen(vnc_screen_t* scrn)
 {
-    scrn->active_scrn = lv_screen_active(); // v9: lv_scr_act() 대신 사용 권장
+    // Get currently active display
+    lv_display_t * disp = lv_display_get_default();
+
+    // Reset the theme to dark mode (Dark theme if the 4th argument is true)
+    lv_theme_t * th = lv_theme_default_init(disp,
+                                            lv_palette_main(LV_PALETTE_BLUE),
+                                            lv_palette_main(LV_PALETTE_GREEN),
+                                            true,
+                                            LV_FONT_DEFAULT);
+
+    // Apply dark theme
+    lv_display_set_theme(disp, th);
+
+    //
+    scrn->active_scrn = lv_screen_active();
     scrn->disp_width = lv_display_get_horizontal_resolution(NULL); // lv_obj_get_width(lv_screen_active())
     scrn->disp_height = lv_display_get_vertical_resolution(NULL); // lv_obj_get_height(lv_screen_active())
 
@@ -411,10 +434,15 @@ static void vnc_init_screen(vnc_screen_t* scrn)
     vnc_create_layer_wifi(scrn);
     vnc_create_layer_conn(scrn);
 
+    // <<<<<<
+    /*
+        * 9.6 --> 9.5
+        *
     lv_obj_set_scrollable(scrn->active_scrn, false);
-    //lv_obj_set_scrollable(layer, false);
-    //lv_obj_set_scrollable(layer, false);
-    //lv_obj_set_scrollable(layer, false);
+    */
+    // ======
+    lv_obj_remove_flag(scrn->active_scrn, LV_OBJ_FLAG_SCROLLABLE);
+    // >>>>>>
 
     lv_obj_add_event_cb(scrn->active_scrn, vnc_size_changed, LV_EVENT_SIZE_CHANGED, 0);
 }
@@ -500,8 +528,17 @@ void main_ui()
     */
     lv_obj_align(btn_clear, LV_ALIGN_BOTTOM_RIGHT, -12, -12);
     lv_obj_set_style_opa(btn_clear, 120, LV_PART_MAIN);
+    // <<<<<<
+    /*
+     * 9.6 --> 9.5
+     *
     lv_obj_set_scroll_chain(btn_clear, false);
     lv_obj_set_floating(btn_clear, true);
+    */
+    // ======
+    lv_obj_remove_flag(btn_clear, LV_OBJ_FLAG_SCROLL_CHAIN);
+    lv_obj_add_flag(btn_clear, LV_OBJ_FLAG_FLOATING);
+    // >>>>>>
     lv_obj_add_event_cb(btn_clear, clear_log_event_cb, LV_EVENT_CLICKED, log_ta);
 
     lv_textarea_set_text(log_ta, "System ready...\nLog 1: Booting success.\nLog 2: Network connected.\n");

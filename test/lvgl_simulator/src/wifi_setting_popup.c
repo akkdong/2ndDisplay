@@ -44,7 +44,7 @@ lv_obj_t * create_wifi_item(lv_obj_t * parent, const char * name, const char * s
     lv_obj_set_style_pad_all(row, 8, 0);
     lv_obj_set_style_pad_column(row, 12, 0);
 
-    lv_obj_set_clickable(row, true); // lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE); // lv_obj_set_clickable(row, true);
     lv_obj_add_event_cb(row, wifi_item_event_cb, LV_EVENT_CLICKED, (void *)name);
 
     // 1. 좌측 와이파이 아이콘
@@ -52,7 +52,7 @@ lv_obj_t * create_wifi_item(lv_obj_t * parent, const char * name, const char * s
     lv_label_set_text(icon_left, LV_SYMBOL_WIFI);
     lv_obj_set_style_text_color(icon_left, lv_color_hex(0x4A90E2), 0);
     lv_obj_set_style_text_font(icon_left, &lv_font_montserrat_16, 0);
-    lv_obj_set_clickable(icon_left, false);
+    lv_obj_remove_flag(icon_left, LV_OBJ_FLAG_CLICKABLE); // lv_obj_set_clickable(icon_left, false);
 
     // 2. 중앙 텍스트 영역
     lv_obj_t * text_area = lv_obj_create(row);
@@ -63,20 +63,20 @@ lv_obj_t * create_wifi_item(lv_obj_t * parent, const char * name, const char * s
     lv_obj_set_style_border_width(text_area, 0, 0);
     lv_obj_set_style_pad_all(text_area, 0, 0);
     lv_obj_set_style_pad_row(text_area, 1, 0);
-    lv_obj_set_clickable(text_area, false);
+    lv_obj_remove_flag(text_area, LV_OBJ_FLAG_CLICKABLE); // lv_obj_set_clickable(text_area, false);
 
     lv_obj_t * lbl_name = lv_label_create(text_area);
     lv_label_set_text(lbl_name, name);
     lv_obj_set_style_text_color(lbl_name, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_text_font(lbl_name, &lv_font_montserrat_14, 0);
-    lv_obj_set_clickable(lbl_name, false);
+    lv_obj_remove_flag(lbl_name, LV_OBJ_FLAG_CLICKABLE); // lv_obj_set_clickable(lbl_name, false);
 
     if(status && strlen(status) > 0) {
         lv_obj_t * lbl_status = lv_label_create(text_area);
         lv_label_set_text(lbl_status, status);
         lv_obj_set_style_text_color(lbl_status, lv_color_hex(0xAAAAAA), 0);
         lv_obj_set_style_text_font(lbl_status, &lv_font_montserrat_12, 0);
-        lv_obj_set_clickable(lbl_status, false);
+        lv_obj_remove_flag(lbl_status, LV_OBJ_FLAG_CLICKABLE); // lv_obj_set_clickable(lbl_status, false);
     }
 
     // 3. 우측 액션 아이콘

@@ -4,7 +4,8 @@
         {
             "name": "win-base",
             "generator": "Visual Studio 18 2026",
-            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+			"binaryDir": "${sourceDir}/build/${presetName}"
         }
     ],
     "buildPresets": [

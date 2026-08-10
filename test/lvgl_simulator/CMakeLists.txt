@@ -1,14 +1,10 @@
-cmake_minimum_required(VERSION 3.12.4)
+cmake_minimum_required(VERSION 3.10)
 project(lvgl C CXX)
 
-include(GNUInstallDirs)
-
 # Set the correct FreeRTOS port for your system (e.g., Posix for WSL)
-set(FREERTOS_PORT GCC_POSIX CACHE STRING "Port for FreeRTOS on Posix environment")
+set(FREERTOS_PORT MSVC_MINGW CACHE STRING "Port for FreeRTOS on Posix environment")
 
-set(LVGL_PRO_PROJECT_DIR
-    ""
-    CACHE PATH "Path to LVGL Pro Project folder")
+unset(USE_FREERTOS CACHE)
 
 option(USE_FREERTOS "Enable FreeRTOS" OFF) # Turn this on to enable FreeRTOS
 
@@ -61,6 +57,10 @@ set(WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 # Find and include SDL2 library
 find_package(SDL2 REQUIRED)
 
+# Remove ARM-specific compile and linker options
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+
 # Add compile definitions based on the selected options
 add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
 add_compile_definitions($<$<BOOL:${LV_USE_LIBPNG}>:LV_USE_LIBPNG=1>)
@@ -71,23 +71,43 @@ add_compile_definitions($<$<BOOL:${LV_USE_FFMPEG}>:LV_USE_FFMPEG=1>)
 add_subdirectory(lvgl)
 target_include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR} ${SDL2_INCLUDE_DIRS})
 
-set(MAIN_SOURCES src/mouse_cursor_icon.c src/hal/hal.c)
-set(MAIN_LIBS lvgl lvgl::examples lvgl::demos lvgl::thorvg ${SDL2_LIBRARIES})
-
 # Create the main executable, depending on the FreeRTOS option
 if(USE_FREERTOS)
-    list(APPEND MAIN_SOURCES src/freertos_main.c src/freertos/freertos_posix_port.c ${FREERTOS_SOURCES})
-    list(APPEND MAIN_LIBS freertos_config freertos_kernel)
+    add_executable(main
+        ${PROJECT_SOURCE_DIR}/main/src/main.c
+        ${PROJECT_SOURCE_DIR}/main/src/freertos_main.cpp
+        ${PROJECT_SOURCE_DIR}/main/src/mouse_cursor_icon.c
+        ${PROJECT_SOURCE_DIR}/main/src/FreeRTOS_Posix_Port.c
+        ${FREERTOS_SOURCES}  # Add only if USE_FREERTOS is enabled
+    )
+    # Link FreeRTOS libraries
+    target_link_libraries(main freertos_config FreeRTOS)
 else()
-    list(APPEND MAIN_SOURCES src/main.c)
-    list(APPEND MAIN_SOURCES src/logo.c)
-    list(APPEND MAIN_SOURCES src/vnc_connect_popup.c)
-    list(APPEND MAIN_SOURCES src/wifi_setting_popup.c)
+    #add_executable(main
+    #    ${PROJECT_SOURCE_DIR}/main/src/main.c
+    #    ${PROJECT_SOURCE_DIR}/main/src/mouse_cursor_icon.c
+    #)
+    add_executable(main
+        ${PROJECT_SOURCE_DIR}/src/main.c
+        ${PROJECT_SOURCE_DIR}/src/logo.c
+        ${PROJECT_SOURCE_DIR}/src/vnc_connect_popup.c
+        ${PROJECT_SOURCE_DIR}/src/wifi_setting_popup.c
+        ${PROJECT_SOURCE_DIR}/src/mouse_cursor_icon.c
+        ${PROJECT_SOURCE_DIR}/src/hal/hal.c
+    )
 endif()
 
+# Define LVGL configuration as a simple include
+target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
+if (WIN32)
+target_link_libraries(main lvgl lvgl::examples lvgl::demos lvgl::thorvg ${SDL2_LIBRARIES})
+else()
+target_link_libraries(main lvgl lvgl::examples lvgl::demos lvgl::thorvg ${SDL2_LIBRARIES} m pthread)
+endif()
 
-if(NOT MSVC)
-    list(APPEND MAIN_LIBS m pthread)
+# Only link freertos_config if the FreeRTOS directory exists
+if(USE_FREERTOS)
+    target_link_libraries(main freertos_config)
 endif()
 
 # Custom target to run the executable
@@ -98,66 +118,33 @@ if(LV_USE_DRAW_SDL)
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
     find_package(SDL2_image REQUIRED)
     target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
-    list(APPEND MAIN_LIBS ${SDL2_IMAGE_LIBRARIES})
+    target_link_libraries(main ${SDL2_IMAGE_LIBRARIES})
 endif()
 
 # Conditionally include and link libpng if LV_USE_LIBPNG is enabled
 if(LV_USE_LIBPNG)
     find_package(PNG REQUIRED)
     target_include_directories(lvgl PUBLIC ${PNG_INCLUDE_DIRS})
-    list(APPEND MAIN_LIBS ${PNG_LIBRARIES})
+    target_link_libraries(main ${PNG_LIBRARIES})
 endif()
 
 # Conditionally include and link libjpeg-turbo if LV_USE_LIBJPEG_TURBO is enabled
 if(LV_USE_LIBJPEG_TURBO)
     find_package(JPEG REQUIRED)
     target_include_directories(lvgl PUBLIC ${JPEG_INCLUDE_DIRS})
-    list(APPEND MAIN_LIBS ${JPEG_LIBRARIES})
+    target_link_libraries(main ${JPEG_LIBRARIES})
 endif()
 
 # Conditionally include and link FFmpeg libraries if LV_USE_FFMPEG is enabled
 if(LV_USE_FFMPEG)
-    list(APPEND MAIN_LIBS avformat avcodec avutil swscale z)
+    target_link_libraries(main avformat avcodec avutil swscale z)
 endif()
 
 # Conditionally include and link FreeType if LV_USE_FREETYPE is enabled
 if(LV_USE_FREETYPE)
     find_package(Freetype REQUIRED)
     target_include_directories(lvgl PUBLIC ${FREETYPE_INCLUDE_DIRS})
-    list(APPEND MAIN_LIBS ${FREETYPE_LIBRARIES})
-endif()
-
-if(LVGL_PRO_PROJECT_DIR)
-  if(EXISTS "${LVGL_PRO_PROJECT_DIR}/CMakeLists.txt")
-    add_subdirectory(${LVGL_PRO_PROJECT_DIR} ui)
-    list(APPEND MAIN_LIBS lib-ui)
-
-    target_compile_definitions(lib-ui PUBLIC LV_LVGL_H_INCLUDE_SIMPLE)
-    target_include_directories(lib-ui PUBLIC
-      ${LVGL_PRO_PROJECT_DIR}  # local headers like ui.h, generated files, etc.
-      ${CMAKE_SOURCE_DIR}/lvgl # include "lvgl.h" works
-    )
-    message(STATUS "LVGL Pro Project enabled from: ${LVGL_PRO_PROJECT_DIR}")
-  else()
-    message(
-      WARNING
-        "LVGL_PRO_PROJECT_DIR specified but no CMakeLists.txt found at: ${LVGL_PRO_PROJECT_DIR}"
-    )
-  endif()
-endif()
-
-add_executable(main ${MAIN_SOURCES})
-target_compile_definitions(main PRIVATE LV_CONF_INCLUDE_SIMPLE)
-target_link_libraries(main ${MAIN_LIBS})
-
-# On Windows, GUI applications do not show a console by default,
-# which hides log output. This ensures a console is available for logging.
-if (WIN32)
-    if (MSVC)
-        target_link_options(main PRIVATE "/SUBSYSTEM:CONSOLE")
-    else()
-        target_link_options(main PRIVATE "-mconsole")
-    endif()
+    target_link_libraries(main ${FREETYPE_LIBRARIES})
 endif()
 
 # Apply additional compile options if the build type is Debug
@@ -201,9 +188,4 @@ if (ASAN)
 else()
     message(STATUS "AddressSanitizer disabled")
 endif()
-endif()
-
-
-if(TARGET lvgl)
-    target_include_directories(lvgl INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 endif()
