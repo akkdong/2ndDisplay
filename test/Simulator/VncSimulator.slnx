@@ -1,0 +1,24 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="FreeRTOS+TCP/FreeRTOS+TCP.vcxproj" Id="c90e6cc5-818b-4c97-8876-0986d989387c">
+    <BuildType Project="Debug" />
+  </Project>
+  <Project Path="FreeRTOS-Kernel/FreeRTOS-Kernel.vcxproj" Id="72c209c4-49a4-4942-a201-44706c9d77ec">
+    <BuildType Project="Debug" />
+  </Project>
+  <Project Path="FreeRTOS-Logging/FreeRTOSLogging.vcxproj" Id="be362ac0-b10b-4276-b84e-6304652ba228">
+    <BuildType Project="Debug" />
+  </Project>
+  <Project Path="FreeRTOS/FreeRTOS.vcxproj" Id="26627088-a6c1-4ad5-9026-c0dd362a2bc7" />
+  <Project Path="LVGL/lvgl.vcxproj" Id="224b34da-7dd8-379a-b6fe-cb6fad0c733e" />
+  <Project Path="LWIP/lwipcontribportwindows.vcxproj" Id="81e1e2fd-a961-32f4-8f7f-8928a8b30749" />
+  <Project Path="LWIP/lwipcore.vcxproj" Id="13761373-db34-38e8-8971-97c562934260" />
+  <Project Path="VncSimulator/VncSimulator.vcxproj" Id="05d93bd3-4d28-4bd6-be7f-054bbf943023">
+    <BuildDependency Project="FreeRTOS+TCP/FreeRTOS+TCP.vcxproj" />
+    <BuildDependency Project="FreeRTOS-Kernel/FreeRTOS-Kernel.vcxproj" />
+    <BuildDependency Project="FreeRTOS-Logging/FreeRTOSLogging.vcxproj" />
+    <BuildDependency Project="LVGL/lvgl.vcxproj" />
+  </Project>
+</Solution>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{03334b83-3266-4cf4-9640-4962e653bdba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Kernel">
+      <UniqueIdentifier>{7eca6f04-3532-407e-990c-0ec553526fea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Portable">
+      <UniqueIdentifier>{52ceaa38-cb4d-4021-a5f5-7b9c45e32b24}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include=".\kernel\include\list.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\message_buffer.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\mpu_prototypes.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\mpu_wrappers.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\portable.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\projdefs.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\queue.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\semphr.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\stack_macros.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\StackMacros.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\stream_buffer.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\task.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\timers.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\atomic.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\deprecated_definitions.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\event_groups.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include=".\kernel\include\FreeRTOS.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="FreeRTOSConfig.h" />
+    <ClInclude Include=".\kernel\portable\MSVC-MingW\portmacro.h">
+      <Filter>Portable</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include=".\kernel\list.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include=".\kernel\queue.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include=".\kernel\stream_buffer.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include=".\kernel\tasks.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include=".\kernel\timers.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include=".\kernel\event_groups.c">
+      <Filter>Kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="freertos_hooks_winsim.c" />
+    <ClCompile Include="runtime_stats_winsim.c" />
+    <ClCompile Include=".\kernel\portable\MemMang\heap_4.c">
+      <Filter>Portable</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\portable\MemMang\heap_5.c">
+      <Filter>Portable</Filter>
+    </ClCompile>
+    <ClCompile Include=".\kernel\portable\MSVC-MingW\port.c">
+      <Filter>Portable</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".\kernel\include\stdint.readme">
+      <Filter>include</Filter>
+    </None>
+  </ItemGroup>
+</Project>

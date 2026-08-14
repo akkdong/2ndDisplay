@@ -1,0 +1,575 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|Win32">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|Win32">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BD4A97D9-A3E7-3F85-AAF7-C75596EE9EEE}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>Win32</Platform>
+    <ProjectName>lvgl_examples</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\build\lvgl\lib\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lvgl_examples.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lvgl_examples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\build\lvgl\lib\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lvgl_examples.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lvgl_examples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.\build\lvgl\lib\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lvgl_examples.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lvgl_examples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.\build\lvgl\lib\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lvgl_examples.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lvgl_examples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\examples;.\build\lvgl;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include=".\lvgl\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include=".\lvgl\examples\anim\lv_example_anim_1.c" />
+    <ClCompile Include=".\lvgl\examples\anim\lv_example_anim_2.c" />
+    <ClCompile Include=".\lvgl\examples\anim\lv_example_anim_3.c" />
+    <ClCompile Include=".\lvgl\examples\anim\lv_example_anim_4.c" />
+    <ClCompile Include=".\lvgl\examples\anim\lv_example_anim_timeline_1.c" />
+    <ClCompile Include=".\lvgl\examples\assets\animimg001.c" />
+    <ClCompile Include=".\lvgl\examples\assets\animimg002.c" />
+    <ClCompile Include=".\lvgl\examples\assets\animimg003.c" />
+    <ClCompile Include=".\lvgl\examples\assets\emoji\img_emoji_F617.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_caret_down.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_cogwheel_argb.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_cogwheel_indexed16.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_cogwheel_rgb.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_hand.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_multilang_like.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_skew_strip.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_star.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_svg_img.c" />
+    <ClCompile Include=".\lvgl\examples\assets\img_transform_avatar_15.c" />
+    <ClCompile Include=".\lvgl\examples\assets\imgbtn_left.c" />
+    <ClCompile Include=".\lvgl\examples\assets\imgbtn_mid.c" />
+    <ClCompile Include=".\lvgl\examples\assets\imgbtn_right.c" />
+    <ClCompile Include=".\lvgl\examples\event\lv_example_event_bubble.c" />
+    <ClCompile Include=".\lvgl\examples\event\lv_example_event_button.c" />
+    <ClCompile Include=".\lvgl\examples\event\lv_example_event_click.c" />
+    <ClCompile Include=".\lvgl\examples\event\lv_example_event_draw.c" />
+    <ClCompile Include=".\lvgl\examples\event\lv_example_event_streak.c" />
+    <ClCompile Include=".\lvgl\examples\event\lv_example_event_trickle.c" />
+    <ClCompile Include=".\lvgl\examples\get_started\lv_example_get_started_1.c" />
+    <ClCompile Include=".\lvgl\examples\get_started\lv_example_get_started_2.c" />
+    <ClCompile Include=".\lvgl\examples\get_started\lv_example_get_started_3.c" />
+    <ClCompile Include=".\lvgl\examples\get_started\lv_example_get_started_4.c" />
+    <ClCompile Include=".\lvgl\examples\grad\lv_example_grad_1.c" />
+    <ClCompile Include=".\lvgl\examples\grad\lv_example_grad_2.c" />
+    <ClCompile Include=".\lvgl\examples\grad\lv_example_grad_3.c" />
+    <ClCompile Include=".\lvgl\examples\grad\lv_example_grad_4.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\flex\lv_example_flex_1.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\flex\lv_example_flex_2.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\flex\lv_example_flex_3.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\flex\lv_example_flex_4.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\flex\lv_example_flex_5.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\flex\lv_example_flex_6.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\grid\lv_example_grid_1.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\grid\lv_example_grid_2.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\grid\lv_example_grid_3.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\grid\lv_example_grid_4.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\grid\lv_example_grid_5.c" />
+    <ClCompile Include=".\lvgl\examples\layouts\grid\lv_example_grid_6.c" />
+    <ClCompile Include=".\lvgl\examples\libs\barcode\lv_example_barcode_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\bmp\lv_example_bmp_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\ffmpeg\lv_example_ffmpeg_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\ffmpeg\lv_example_ffmpeg_2.c" />
+    <ClCompile Include=".\lvgl\examples\libs\freetype\lv_example_freetype_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\freetype\lv_example_freetype_2.c" />
+    <ClCompile Include=".\lvgl\examples\libs\freetype\lv_example_freetype_3.c" />
+    <ClCompile Include=".\lvgl\examples\libs\gif\img_bulb_gif.c" />
+    <ClCompile Include=".\lvgl\examples\libs\gif\lv_example_gif_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\gltf\lv_example_gltf_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\gltf\lv_example_gltf_2.c" />
+    <ClCompile Include=".\lvgl\examples\libs\gltf\lv_example_gltf_3.c" />
+    <ClCompile Include=".\lvgl\examples\libs\gstreamer\lv_example_gstreamer_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\libjpeg_turbo\lv_example_libjpeg_turbo_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\libpng\img_png_demo.c" />
+    <ClCompile Include=".\lvgl\examples\libs\libpng\lv_example_libpng_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\libwebp\lv_example_libwebp_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\lodepng\img_wink_png.c" />
+    <ClCompile Include=".\lvgl\examples\libs\lodepng\lv_example_lodepng_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\qrcode\lv_example_qrcode_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\rlottie\lv_example_rlottie_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\rlottie\lv_example_rlottie_2.c" />
+    <ClCompile Include=".\lvgl\examples\libs\rlottie\lv_example_rlottie_approve.c" />
+    <ClCompile Include=".\lvgl\examples\libs\svg\lv_example_svg_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\svg\lv_example_svg_2.c" />
+    <ClCompile Include=".\lvgl\examples\libs\svg\lv_example_svg_3.c" />
+    <ClCompile Include=".\lvgl\examples\libs\tiny_ttf\lv_example_tiny_ttf_1.c" />
+    <ClCompile Include=".\lvgl\examples\libs\tiny_ttf\lv_example_tiny_ttf_2.c" />
+    <ClCompile Include=".\lvgl\examples\libs\tiny_ttf\lv_example_tiny_ttf_3.c" />
+    <ClCompile Include=".\lvgl\examples\libs\tiny_ttf\ubuntu_font.c" />
+    <ClCompile Include=".\lvgl\examples\libs\tjpgd\lv_example_tjpgd_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\file_explorer\lv_example_file_explorer_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\file_explorer\lv_example_file_explorer_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\file_explorer\lv_example_file_explorer_3.c" />
+    <ClCompile Include=".\lvgl\examples\others\font_manager\lv_example_font_manager_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\font_manager\lv_example_font_manager_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\font_manager\lv_example_font_manager_3.c" />
+    <ClCompile Include=".\lvgl\examples\others\fragment\lv_example_fragment_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\fragment\lv_example_fragment_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\gestures\lv_example_gestures.c" />
+    <ClCompile Include=".\lvgl\examples\others\gridnav\lv_example_gridnav_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\gridnav\lv_example_gridnav_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\gridnav\lv_example_gridnav_3.c" />
+    <ClCompile Include=".\lvgl\examples\others\gridnav\lv_example_gridnav_4.c" />
+    <ClCompile Include=".\lvgl\examples\others\gridnav\lv_example_gridnav_5.c" />
+    <ClCompile Include=".\lvgl\examples\others\ime\lv_example_ime_pinyin_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\ime\lv_example_ime_pinyin_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\imgfont\lv_example_imgfont_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\monkey\lv_example_monkey_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\monkey\lv_example_monkey_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\monkey\lv_example_monkey_3.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_2.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_3.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_4.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_5.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_6.c" />
+    <ClCompile Include=".\lvgl\examples\others\observer\lv_example_observer_7.c" />
+    <ClCompile Include=".\lvgl\examples\others\snapshot\lv_example_snapshot_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\translation\lv_example_translation_1.c" />
+    <ClCompile Include=".\lvgl\examples\others\translation\lv_example_translation_2.c" />
+    <ClCompile Include=".\lvgl\examples\porting\lv_port_disp_template.c" />
+    <ClCompile Include=".\lvgl\examples\porting\lv_port_fs_template.c" />
+    <ClCompile Include=".\lvgl\examples\porting\lv_port_indev_template.c" />
+    <ClCompile Include=".\lvgl\examples\porting\lv_port_lcd_stm32_template.c" />
+    <ClCompile Include=".\lvgl\examples\porting\osal\lv_example_osal.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_1.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_2.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_3.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_4.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_5.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_6.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_7.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_8.c" />
+    <ClCompile Include=".\lvgl\examples\scroll\lv_example_scroll_9.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_1.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_10.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_11.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_12.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_13.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_14.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_15.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_16.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_17.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_18.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_19.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_2.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_20.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_21.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_3.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_4.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_5.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_6.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_7.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_8.c" />
+    <ClCompile Include=".\lvgl\examples\styles\lv_example_style_9.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\animimg\lv_example_animimg_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\arc\lv_example_arc_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\arc\lv_example_arc_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\arc\lv_example_arc_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\arclabel\lv_example_arclabel_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_6.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\bar\lv_example_bar_7.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\button\lv_example_button_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\button\lv_example_button_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\button\lv_example_button_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\buttonmatrix\lv_example_buttonmatrix_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\buttonmatrix\lv_example_buttonmatrix_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\buttonmatrix\lv_example_buttonmatrix_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\calendar\lv_example_calendar_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\calendar\lv_example_calendar_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_10.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_11.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_12.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_6.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_7.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_8.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\canvas\lv_example_canvas_9.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_6.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_7.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\chart\lv_example_chart_8.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\checkbox\lv_example_checkbox_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\checkbox\lv_example_checkbox_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\dropdown\lv_example_dropdown_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\dropdown\lv_example_dropdown_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\dropdown\lv_example_dropdown_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\image\lv_example_image_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\image\lv_example_image_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\image\lv_example_image_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\image\lv_example_image_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\image\lv_example_image_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\imagebutton\lv_example_imagebutton_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\keyboard\lv_example_keyboard_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\keyboard\lv_example_keyboard_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\keyboard\lv_example_keyboard_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_6.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\label\lv_example_label_7.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\led\lv_example_led_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\line\lv_example_line_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\list\lv_example_list_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\list\lv_example_list_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\lottie\lv_example_lottie_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\lottie\lv_example_lottie_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\lottie\lv_example_lottie_approve.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\menu\lv_example_menu_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\menu\lv_example_menu_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\menu\lv_example_menu_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\menu\lv_example_menu_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\menu\lv_example_menu_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\msgbox\lv_example_msgbox_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\msgbox\lv_example_msgbox_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\msgbox\lv_example_msgbox_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\obj\lv_example_obj_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\obj\lv_example_obj_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\obj\lv_example_obj_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\roller\lv_example_roller_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\roller\lv_example_roller_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\roller\lv_example_roller_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_10.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_11.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_12.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_5.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_6.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_7.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_8.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\scale\lv_example_scale_9.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\slider\lv_example_slider_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\slider\lv_example_slider_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\slider\lv_example_slider_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\slider\lv_example_slider_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\span\lv_example_span_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\spinbox\lv_example_spinbox_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\spinner\lv_example_spinner_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\switch\lv_example_switch_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\switch\lv_example_switch_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\table\lv_example_table_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\table\lv_example_table_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\tabview\lv_example_tabview_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\tabview\lv_example_tabview_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\textarea\lv_example_textarea_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\textarea\lv_example_textarea_2.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\textarea\lv_example_textarea_3.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\textarea\lv_example_textarea_4.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\tileview\lv_example_tileview_1.c" />
+    <ClCompile Include=".\lvgl\examples\widgets\win\lv_example_win_1.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include=".\build\lvgl\lvgl_demos.vcxproj">
+      <Project>{2423B26D-75D3-31DE-B88A-0E89C845261A}</Project>
+      <Name>lvgl_demos</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

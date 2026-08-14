@@ -1,0 +1,404 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|Win32">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|Win32">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2423B26D-75D3-31DE-B88A-0E89C845261A}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>Win32</Platform>
+    <ProjectName>lvgl_demos</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\build\lvgl\lib\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lvgl_demos.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">lvgl_demos</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\build\lvgl\lib\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lvgl_demos.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">lvgl_demos</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.\build\lvgl\lib\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lvgl_demos.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">lvgl_demos</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.\build\lvgl\lib\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lvgl_demos.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">lvgl_demos</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">
+    <ClCompile>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>.;.\lvgl;.\lvgl\demos;.\build\lvgl;.\lvgl\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:X86</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include=".\lvgl\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|Win32'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">Building Custom Rule F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL -BF:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build --check-stamp-file F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.\lvgl\env_support\cmake\os_desktop.cmake;.\lvgl\env_support\cmake\version.cmake;.\lvgl\lv_version.h.in;.\lvgl\lvgl.pc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">.\build\lvgl\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|Win32'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\img_benchmark_avatar.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\img_benchmark_lvgl_logo_argb.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\img_benchmark_lvgl_logo_rgb.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_12_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_14_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_16_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_18_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_20_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_24_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\assets\lv_font_benchmark_montserrat_26_aligned.c" />
+    <ClCompile Include=".\lvgl\demos\benchmark\lv_demo_benchmark.c" />
+    <ClCompile Include=".\lvgl\demos\gltf\lv_demo_gltf.c" />
+    <ClCompile Include=".\lvgl\demos\keypad_encoder\lv_demo_keypad_encoder.c" />
+    <ClCompile Include=".\lvgl\demos\lv_demos.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_corner_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_list_pause.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_list_pause_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_list_play.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_list_play_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_loop.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_loop_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_next.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_next_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_pause.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_pause_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_play.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_play_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_prev.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_prev_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_rnd.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_btn_rnd_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_corner_left.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_corner_left_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_corner_right.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_corner_right_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_cover_1.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_cover_1_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_cover_2.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_cover_2_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_cover_3.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_cover_3_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_1.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_1_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_2.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_2_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_3.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_3_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_4.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_icon_4_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_list_border.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_list_border_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_logo.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_slider_knob.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_slider_knob_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_wave_bottom.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_wave_bottom_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_wave_top.c" />
+    <ClCompile Include=".\lvgl\demos\music\assets\img_lv_demo_music_wave_top_large.c" />
+    <ClCompile Include=".\lvgl\demos\music\lv_demo_music.c" />
+    <ClCompile Include=".\lvgl\demos\music\lv_demo_music_list.c" />
+    <ClCompile Include=".\lvgl\demos\music\lv_demo_music_main.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_arc_bg.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_argb8888.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_argb8888_premultiplied.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_i1.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_l8.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_rgb565.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_rgb565_swapped.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_rgb565a8.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_rgb888.c" />
+    <ClCompile Include=".\lvgl\demos\render\assets\img_render_lvgl_logo_xrgb8888.c" />
+    <ClCompile Include=".\lvgl\demos\render\lv_demo_render.c" />
+    <ClCompile Include=".\lvgl\demos\stress\lv_demo_stress.c" />
+    <ClCompile Include=".\lvgl\demos\vector_graphic\assets\img_demo_vector_avatar.c" />
+    <ClCompile Include=".\lvgl\demos\vector_graphic\lv_demo_vector_graphic.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\assets\img_clothes.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\assets\img_demo_widgets_avatar.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\assets\img_demo_widgets_needle.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\assets\img_lvgl_logo.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\lv_demo_widgets.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\lv_demo_widgets_analytics.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\lv_demo_widgets_components.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\lv_demo_widgets_profile.c" />
+    <ClCompile Include=".\lvgl\demos\widgets\lv_demo_widgets_shop.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include=".\build\ZERO_CHECK.vcxproj">
+      <Project>{FF32FF32-9315-3836-B888-1BE15C896A1B}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

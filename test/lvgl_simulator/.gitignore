@@ -10,3 +10,7 @@ ui/
 
 # VSCode
 .vscode
+
+FreeRTOS/
+lvgl/
+lv_drivers/
