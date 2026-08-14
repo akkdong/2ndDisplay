@@ -52,7 +52,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos"</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "." /external:I "./lvgl" /external:I "./build/lvgl" /external:I "./lvgl/examples" /external:I "./lvgl/demos"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <BufferSecurityCheck>
@@ -80,12 +80,12 @@
       <TreatWChar_tAsBuiltInType>
       </TreatWChar_tAsBuiltInType>
       <UseFullPaths>false</UseFullPaths>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="./lv_conf.h";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"./lv_conf.h\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.;.\lvgl;.\build\lvgl;.\lvgl\examples;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
@@ -102,7 +102,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/build/lvgl" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/examples" /external:I "F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lvgl/demos"</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "." /external:I "./lvgl" /external:I "./build/lvgl" /external:I "./lvgl/examples" /external:I "./lvgl/demos"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <BufferSecurityCheck>
@@ -129,14 +129,14 @@
       <TreatWChar_tAsBuiltInType>
       </TreatWChar_tAsBuiltInType>
       <UseFullPaths>false</UseFullPaths>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH="./lv_conf.h";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"F:/Work/Private/project/2ndDisplay/test/Simulator/LVGL/lv_conf.h\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;LV_KCONFIG_IGNORE;LV_CONF_INCLUDE_SIMPLE;LV_LVGL_H_INCLUDE_SIMPLE;LV_CONF_PATH=\"./lv_conf.h\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>.;.\lvgl;.\build\lvgl;.\lvgl\examples;.\lvgl\demos;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
