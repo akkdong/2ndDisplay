@@ -21,12 +21,6 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sdl_init.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="lvgl_init.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="hooks.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -36,16 +30,37 @@
     <ClCompile Include="app_main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vnc_display.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bsp_display.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vnc_screen.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vnc_logo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="sdl_init.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lvgl_init.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="net_state.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vnc_display.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bsp_display.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extern.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vnc_screen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="esp_log.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

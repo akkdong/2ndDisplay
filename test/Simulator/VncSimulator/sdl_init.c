@@ -126,7 +126,7 @@ void sdl_init()
 
 
 // LVGL Input Processing Callback
-void mouse_read_cb(lv_indev_t* indev, lv_indev_data_t* data) 
+static void mouse_read_cb(lv_indev_t* indev, lv_indev_data_t* data) 
 {
     EnterCriticalSection(&mouse_lock);
 
@@ -149,7 +149,7 @@ void mouse_read_cb(lv_indev_t* indev, lv_indev_data_t* data)
 
 
 // LVGL Display Flush Callback (Treating SDL thread like a DMA block transfer)
-void lcd_flush_cb(lv_display_t* display, const lv_area_t* area, uint8_t* px_map) 
+static void lcd_flush_cb(lv_display_t* display, const lv_area_t* area, uint8_t* px_map) 
 {
     int32_t x, y;
     lcd_color_t* out_pixels = (lcd_color_t*)shared_fbuffer;

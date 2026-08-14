@@ -11,8 +11,8 @@
 
 #define ENABLE_SDL_FEATURE	1
 
-#define DISPLAY_WIDTH		800
-#define DISPLAY_HEIGHT		480
+#define DISPLAY_WIDTH		480
+#define DISPLAY_HEIGHT		800
 
 
 

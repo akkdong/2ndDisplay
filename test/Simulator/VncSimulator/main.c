@@ -121,6 +121,7 @@ int main()
      * the random number generator. */
     prvMiscInitialisation();
 
+#if 0
     /* Initialise the network interface.
      *
      ***NOTE*** Tasks that use the network are created in the network event hook
@@ -161,6 +162,7 @@ int main()
 
     vPlatformInitIpStack();
 #endif // SELF_IMPLEMENT
+#endif
 
     //
     //

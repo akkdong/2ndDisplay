@@ -55,7 +55,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_SIMULATOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>..\FreeRTOS-Kernel\kernel\include;..\FreeRTOS-Kernel\kernel\portable\MSVC-MingW;..\FreeRTOS-Kernel;..\FreeRTOS+TCP\source\include;..\FreeRTOS+TCP\source\portable\Compiler\MSVC;..\FreeRTOS+TCP\tools\tcp_utilities\include;..\FreeRTOS+TCP;..\FreeRTOS-Logging;..\LVGL\lvgl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -92,19 +92,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="app_main.c" />
+    <ClCompile Include="bsp_display.c" />
     <ClCompile Include="hooks.c" />
-    <ClCompile Include="lvgl_init.c" />
     <ClCompile Include="main.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="net_state.c" />
-    <ClCompile Include="sdl_init.c" />
     <ClCompile Include="VncSimulator.c" />
+    <ClCompile Include="vnc_display.c" />
+    <ClCompile Include="vnc_logo.c" />
+    <ClCompile Include="vnc_screen.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lvgl_init.h" />
+    <ClInclude Include="bsp_display.h" />
+    <ClInclude Include="esp_log.h" />
+    <ClInclude Include="extern.h" />
     <ClInclude Include="net_state.h" />
-    <ClInclude Include="sdl_init.h" />
+    <ClInclude Include="vnc_display.h" />
+    <ClInclude Include="vnc_screen.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
