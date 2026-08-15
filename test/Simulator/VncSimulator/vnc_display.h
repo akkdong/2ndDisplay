@@ -20,8 +20,8 @@
 #include "bsp_display.h"
 #endif
 
-#include "lvgl.h"
 #include "extern.h"
+#include "lvgl/lvgl.h"
 
 
 BEGIN_EXTERN_C()

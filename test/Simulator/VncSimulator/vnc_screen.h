@@ -4,10 +4,10 @@
 #pragma once
 
 #include "vnc_display.h"
-#include "lvgl.h"
+#include "lvgl/lvgl.h"
 
-#define MAX_LOG_LINES 50  // 유지할 최대 로그 줄 수
-
+#define VNC_MAX_LOGS        50  // 유지할 최대 로그 줄 수
+#define VNC_CACHE_OBJECTS   1
 
 
 #ifdef __cplusplus
@@ -15,19 +15,8 @@ extern "C"
 {
 #endif
 
-    typedef struct vnc_screen_config vnc_screen_config_t;
     typedef struct vnc_screen vnc_screen_t;
-    //typedef struct vnc_display vnc_display_t;
-
-
-
-    struct vnc_screen_config
-    {
-        // callback
-        void (*on_connect)(vnc_screen_t* scrn, const char* addr, uint16_t port);
-
-        vnc_display_t* disp;
-    };
+    typedef struct vnc_app vnc_app_t;
 
     struct vnc_screen
     {
@@ -35,18 +24,19 @@ extern "C"
         int disp_width;
         int disp_height;
 
+        /*
         lv_obj_t* active_scrn;
+        */
         lv_obj_t* layer_canvas;
         lv_obj_t* layer_main;
-        lv_obj_t* layer_wifi;
-        lv_obj_t* layer_conn;
+#if VNC_CACHE_OBJECTS
+        lv_obj_t* obj_logs;
+        lv_obj_t* obj_state;
+        lv_obj_t* btn_connect;
+#endif
 
         // command
-        void (*create)(vnc_screen_t* scrn);
-        void (*destroy)(vnc_screen_t* scrn);
-
-        // callback
-        void (*on_connect)(vnc_screen_t* scrn, const char* addr, uint16_t port);
+        void (*connect_server)(const char* ip, uint16_t port, const char* pass);
     };
 
 
@@ -63,8 +53,14 @@ extern "C"
     /**
      *
      */
-     //void vnc_screen_init(vnc_display_t* vnc_disp);
-    vnc_screen_t* vnc_screen_init(vnc_screen_config_t* cfg);
+    vnc_screen_t* vnc_screen_init(vnc_display_t* disp);
+
+    /**
+     *
+     */
+    void vnc_screen_create(vnc_screen_t* scrn);
+
+
 
     /**
      *
@@ -72,10 +68,12 @@ extern "C"
     vnc_screen_t* vnc_screen_get_handle();
 
 
+
     /**
      *
      */
-    void vnc_screen_create(vnc_screen_t* scrn);
+    void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action);
+
 
 
     /**

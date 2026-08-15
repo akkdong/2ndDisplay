@@ -34,6 +34,3 @@
 
 ;
 #pragma pack( pop )
-
-
-#pragma warning( default : 4103 )

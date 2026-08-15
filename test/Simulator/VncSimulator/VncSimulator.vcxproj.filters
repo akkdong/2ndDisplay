@@ -42,6 +42,12 @@
     <ClCompile Include="vnc_logo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vnc_connect_popup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wifi_setting_popup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_state.h">
@@ -60,6 +66,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="esp_log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vnc_connect_popup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wifi_setting_popup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="app_main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

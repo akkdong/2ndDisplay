@@ -35,6 +35,9 @@
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 
+#include "app_main.h"
+
+
 /* Function from freertos_hooks_winsim.c */
 extern UBaseType_t uxRand(void);
 
@@ -106,16 +109,6 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
     /* If the network has just come up...*/
     if (eNetworkEvent == eNetworkUp)
     {
-        /* Create the tasks that use the IP stack if they have not already been
-         * created. */
-        if (xTasksAlreadyCreated == pdFALSE)
-        {
-            vStartDemo();
-
-            xTasksAlreadyCreated = pdTRUE;
-        }
-
-
         /* Print out the network configuration, which may have come from a DHCP
          * server. */
 #if defined( ipconfigIPv4_BACKWARD_COMPATIBLE ) && ( ipconfigIPv4_BACKWARD_COMPATIBLE == 0 )
@@ -135,6 +128,20 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
 
         FreeRTOS_inet_ntoa(ulDNSServerAddress, cBuffer);
         FreeRTOS_printf(("DNS Server Address: %s\r\n\r\n\r\n", cBuffer));
+
+        /* Create the tasks that use the IP stack if they have not already been
+         * created. */
+        if (xTasksAlreadyCreated == pdFALSE)
+        {
+            vnc_app_event_send(NETWORK_CONNECTED, ulIPAddress);
+            xTasksAlreadyCreated = pdTRUE;
+        }
+        else
+        {
+            // changed ?
+            // 
+            // ...
+        }
     }
 }
 

@@ -73,6 +73,8 @@
 */
 #include "logging.h"
 
+#include "app_main.h"
+
 
 /*
  * Miscellaneous initialisation including preparing the logging and seeding the
@@ -167,8 +169,7 @@ int main()
     //
     //
     //
-    extern void app_init(void);
-    app_init();
+    vnc_app_init();
 
 
     /* Start the RTOS scheduler. */

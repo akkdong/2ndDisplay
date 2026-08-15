@@ -17,7 +17,7 @@
 #endif
 
 #include "bsp_display.h"
-#include "lvgl.h"
+#include "lvgl/lvgl.h"
 #include "SDL2/SDL.h"
 
 #include "vnc_display.h"
@@ -82,7 +82,6 @@ static void bsp_display_task(void* param)
                 {
                     xSemaphoreTake(mouse_lock, portMAX_DELAY);
                     shared_mouse.is_pressed = true;
-                    printf("LButtonDown(%d, %d)\n", shared_mouse.x, shared_mouse.y);
                     xSemaphoreGive(mouse_lock);
                 }
             }
@@ -92,7 +91,6 @@ static void bsp_display_task(void* param)
                 {
                     xSemaphoreTake(mouse_lock, portMAX_DELAY);
                     shared_mouse.is_pressed = false;
-                    printf("LButtonUp(%d, %d)\n", shared_mouse.x, shared_mouse.y);
                     xSemaphoreGive(mouse_lock);
                 }
             }
@@ -125,7 +123,7 @@ static void bsp_display_task(void* param)
 
 
 // LVGL Input Processing Callback
-void mouse_read_cb(lv_indev_t* indev, lv_indev_data_t* data)
+void bsp_touch_input(lv_indev_t* indev, lv_indev_data_t* data)
 {
     xSemaphoreTake(mouse_lock, portMAX_DELAY);
 
@@ -148,7 +146,7 @@ void mouse_read_cb(lv_indev_t* indev, lv_indev_data_t* data)
 
 
 // LVGL Display Flush Callback (Treating SDL thread like a DMA block transfer)
-void lcd_flush_cb(lv_display_t* display, const lv_area_t* area, uint8_t* px_map)
+void bsp_display_flush(lv_display_t* display, const lv_area_t* area, uint8_t* px_map)
 {
     int32_t x, y;
     lcd_color_t* out_pixels = (lcd_color_t*)shared_fbuffer;
@@ -182,8 +180,8 @@ void bsp_display_init(vnc_display_t* disp)
     disp_height = disp->disp_height;
     shared_fbuffer = malloc(disp_width * disp_height * sizeof(lcd_color_t));
 
-    disp->display_flush = lcd_flush_cb;
-    disp->touch_input = mouse_read_cb;
+    disp->display_flush = bsp_display_flush;
+    disp->touch_input = bsp_touch_input;
 
     xTaskCreate(bsp_display_task, "bsp_display_task", 2 * 1024, NULL, tskIDLE_PRIORITY + 4, NULL);
 }
