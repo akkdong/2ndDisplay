@@ -5,20 +5,17 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "timers.h"
+#if defined(_SIMULATOR)
+#include "FreeRTOSIPConfig.h"
+#include "FreeRTOS_IP.h"
+#include "FreeRTOS_Sockets.h"
+#endif
 
 #include "app_main.h"
+#include "vnc_client.h"
 
 
 
-//
-//
-//
-
-typedef struct AppEventMsg
-{
-    app_event_t id;
-    uint32_t data;
-} AppEventMsg_t;
 
 
 //
@@ -104,12 +101,14 @@ static void task_netif_up(void* param)
         //
     }
 
+    //
+    vTaskDelete(NULL);
 }
 
 void net_start(vnc_app_t* app)
 {
 #if defined(_SIMULATOR)
-    xTaskCreate(task_netif_up, "netif_up", 1 * 1024, app, +2, NULL);
+    xTaskCreate(task_netif_up, "netif_up", 1 * 1024, app, tskIDLE_PRIORITY + 2, NULL);
 #else
 #endif
 }
@@ -122,19 +121,44 @@ void net_start(vnc_app_t* app)
 //
 //
 
-static void vnc_connect_server(const char* addr, uint16_t port, const char* pass)
+static void vnc_app_connect_server(vnc_app_t* app, const char* addr, uint16_t port, const char* pass)
 {
     printf("Connect To: %s#%u (%s)\n", addr, port, pass);
+    // vnc_app_data_lock(app);
+    {
+        strncpy(app->server_addr, addr, sizeof(app->server_addr));
+        app->server_port = port;
+        strncpy(app->server_pass, pass, sizeof(app->server_pass));
+    }
+    // vnc_app_data_unlock(app);
 
+    //
     /*
-    vnc_connect_info_t* cinfo = (vnc_connect_info_t *)arg;
+    app->client = vnc_client_start(app);
+    if (app->client)
+    {
+    }
+    else
+    {
 
-    vnc_client_t* client = malloc(vcn_client_t);
-    vnc_client_init(client);
-    vnc_client_start(client, cinfo->addr, cinfo->port);
+    }
     */
+    vnc_app_event_send(VNC_CONNECT_SERVER, 0);
 }
 
+static void vnc_app_get_server(vnc_app_t* app, char* addr, uint16_t* port, char* pass)
+{
+    // vnc_app_data_lock(app);
+    {
+        if (addr)
+            strncpy(addr, app->server_addr, sizeof(app->server_addr));
+        if (port)
+            *port = app->server_port;
+        if (pass)
+            strncpy(pass, app->server_pass, sizeof(app->server_pass));
+    }
+    // vnc_app_data_unlock(app);
+}
 
 
 
@@ -147,6 +171,7 @@ vnc_app_t vnc_app =
 {
     .disp = NULL,
     .scrn = NULL,
+    .client = NULL,
 
 #if defined(_SIMULATOR)
     .net_ip = { configIP_ADDR0, configIP_ADDR1, configIP_ADDR2, configIP_ADDR3 },
@@ -159,10 +184,18 @@ vnc_app_t vnc_app =
     .wifi_pass = { 0 },
 #endif
 
+    .server_addr = "192.168.219.128", // { 0 },
+    .server_port = 5800,
+    .server_pass = "password", // { 0 },
+
     .state = APP_STATE_INIT,
     .action = APP_ACTION_NONE,
 
     .event_queue = NULL,
+
+    //
+    .connect_server = vnc_app_connect_server,
+    .get_server = vnc_app_get_server,
 };
 
 
@@ -186,9 +219,10 @@ static void app_task(void* param)
     char buf[16];
 
     //
-    vnc_screen_create(app->scrn);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    app->scrn->create(app->scrn); // vnc_screen_create(app->scrn);
     vTaskDelay(pdMS_TO_TICKS(100));
-    vnc_update_state(app->scrn, app->state, app->action);
+    app->scrn->update_state(app->scrn, app->state, app->action); // vnc_update_state(app->scrn, app->state, app->action);
     vTaskDelay(pdMS_TO_TICKS(100));
 
     // prepare network
@@ -208,7 +242,9 @@ static void app_task(void* param)
     {
         if (xQueueReceive(app->event_queue, &msg, 0) == pdTRUE)
         {
+            printf("[APP] pre-RecvEvent\n");
             vnc_log_printf(app->scrn, "[APP] RecvEvent(%d, %u)\n", msg.id, msg.data);
+            printf("[APP] RecvEvent(%d, %u)\n", msg.id, msg.data);
 
             switch (msg.id)
             {
@@ -222,6 +258,18 @@ static void app_task(void* param)
                 break;
             case NETWORK_DISCONNECTED:
                 break;
+            case VNC_CONNECT_SERVER:
+                app->client = vnc_client_start(app);
+                if (app->client)
+                {
+                    app->action = APP_ACTION_VNC_CONNECT;
+                    vnc_update_state(app->scrn, app->state, app->action);
+                }
+                else
+                {
+
+                }
+                break;
             case VNC_CONNECTED:
                 break;
             case VNC_DISCONNECTED:
@@ -231,8 +279,10 @@ static void app_task(void* param)
 
 
         //
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
+
+    vTaskDelete(NULL);
 }
 
 
@@ -250,10 +300,10 @@ void vnc_app_init()
     vnc_app.disp = vnc_display_start();
 
     //
-    vnc_app.scrn = vnc_screen_init(vnc_app.disp);
+    vnc_app.scrn = vnc_screen_init(&vnc_app);
 
-    vnc_app.scrn->connect_server = vnc_connect_server;
     /*
+    vnc_app.scrn->connect_server = vnc_connect_server;
     vnc_app.scrn->xxx = xxx;
     */
 
@@ -262,9 +312,12 @@ void vnc_app_init()
     vnc_app.action = APP_ACTION_NONE;
     vnc_app.event_queue = xQueueCreate(10, sizeof(AppEventMsg_t));
 
+    /*
+    vnc_app.scrn->create(vnc_app.scrn);
+    */
 
     // start main-task
-    xTaskCreate(app_task, "main", 4 * 1024, &vnc_app, +2, NULL);
+    xTaskCreate(app_task, "main", 4 * 1024, &vnc_app, tskIDLE_PRIORITY + 2, NULL);
 }
 
 

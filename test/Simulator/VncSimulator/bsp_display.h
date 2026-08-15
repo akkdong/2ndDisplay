@@ -4,17 +4,9 @@
 #pragma once
 
 #include "extern.h"
-
+#include "vnc_types.h"
 
 BEGIN_EXTERN_C();
-
-
-//
-//
-//
-
-typedef struct vnc_display vnc_display_t;
-
 
 
 //

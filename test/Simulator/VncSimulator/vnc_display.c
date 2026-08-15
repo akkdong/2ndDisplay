@@ -2,6 +2,9 @@
 //
 
 #include "vnc_display.h"
+#include "bsp_display.h"
+#include "SDL2/SDL.h"
+
 
 #define ENABLE_SDL_FEATURE	1
 
@@ -31,6 +34,9 @@ static void vnc_lvgl_task(void* param)
 
     while (1)
     {
+        vnc_display_lock(&disp, true);
+        //{
+
         //
         uint32_t current_time = SDL_GetTicks();
         uint32_t elapsed_time = current_time - last_tick;
@@ -40,9 +46,15 @@ static void vnc_lvgl_task(void* param)
         // Run LVGL internal timers and render logic
         uint32_t time_till_next = lv_timer_handler();
 
+        //}
+        vnc_display_lock(&disp, false);
+
         // Prevent starvation, yield back to lower priority tasks
         vTaskDelay(pdMS_TO_TICKS(time_till_next < 5 ? 5 : time_till_next));
     }
+
+    //
+    vTaskDelete(NULL);
 }
 
 

@@ -15,20 +15,25 @@
 #include "vnc_screen.h"
 #include "net_state.h"
 #include "extern.h"
+#include "vnc_types.h"
 
 
-BEGIN_EXTERN_C()
+BEGIN_EXTERN_C();
+
 
 //
-typedef enum app_state
+//
+//
+
+enum app_state_e
 {
     APP_STATE_INIT,
     APP_STATE_STANDBY,    // initialzied, has no network
     APP_STATE_READY,      // has network capability
     APP_STATE_PLAY,       // vnc connected
-} app_state_t;
+};
 
-typedef enum app_action
+enum app_action_e
 {
     APP_ACTION_NONE,
     APP_ACTION_NETIF_UP,
@@ -36,27 +41,42 @@ typedef enum app_action
     APP_ACTION_VNC_CONNECT,
     APP_ACTION_VNC_HANDSHAKE,
     APP_ACTION_VNC_CLOSE,
-} app_action_t;
+};
 
-typedef enum app_event
+enum app_event_e
 {
     NETWORK_CONNECTED = 1000,
     NETWORK_DISCONNECTED,
 
-    VNC_CONNECTED = 2000,
+    VNC_CONNECT_SERVER = 2000,
+    VNC_CONNECTED,
     VNC_DISCONNECTED,
 
-} app_event_t;
+};
+
 
 
 //
-typedef struct vnc_app vnc_app_t;
+//
+//
 
-typedef struct vnc_app
+typedef struct AppEventMsg
+{
+    app_event_t id;
+    uint32_t data;
+} AppEventMsg_t;
+
+
+
+//
+//
+
+struct vnc_app_s
 {
     //
     vnc_display_t* disp;
     vnc_screen_t* scrn;
+    vnc_client_t* client;
 
 #if defined(_SIMULATOR)
     uint8_t net_ip[4];
@@ -72,13 +92,22 @@ typedef struct vnc_app
     char wifi_pass[16]; // authentication password
 #endif
 
+    char server_addr[16]; // xxx.xxx.xxx.xxx
+    uint16_t server_port;
+    char server_pass[32];
+
     //
     app_state_t state;
     app_action_t action;
 
     QueueHandle_t event_queue;
 
-} vnc_app_t;
+    //
+    void (*connect_server)(vnc_app_t* app, const char* ip, uint16_t port, const char* pass);
+
+    void (*get_server)(vnc_app_t* app, char* ip, uint16_t* port, char* pass);
+
+};
 
 
 
@@ -106,6 +135,4 @@ bool vnc_app_event_send(app_event_t event, uint32_t data);
 
 
 
-END_EXTERN_C()
-
-
+END_EXTERN_C();

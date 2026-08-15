@@ -3,97 +3,106 @@
 
 #pragma once
 
-#include "vnc_display.h"
 #include "lvgl/lvgl.h"
+#include "extern.h"
+#include "vnc_types.h"
+#include "vnc_display.h"
+
 
 #define VNC_MAX_LOGS        50  // 유지할 최대 로그 줄 수
 #define VNC_CACHE_OBJECTS   1
 
 
-#ifdef __cplusplus
-extern "C"
+BEGIN_EXTERN_C();
+
+
+//
+//
+//
+
+struct vnc_screen_s
 {
-#endif
+    // display
+    vnc_display_t* disp_handle;
+    int disp_width;
+    int disp_height;
 
-    typedef struct vnc_screen vnc_screen_t;
-    typedef struct vnc_app vnc_app_t;
+    // application
+    vnc_app_t* app;
 
-    struct vnc_screen
-    {
-        vnc_display_t* disp_handle;
-        int disp_width;
-        int disp_height;
-
-        /*
-        lv_obj_t* active_scrn;
-        */
-        lv_obj_t* layer_canvas;
-        lv_obj_t* layer_main;
+    // screen components
+    /*
+    lv_obj_t* active_scrn;
+    */
+    lv_obj_t* layer_canvas;
+    lv_obj_t* layer_main;
 #if VNC_CACHE_OBJECTS
-        lv_obj_t* obj_logs;
-        lv_obj_t* obj_state;
-        lv_obj_t* btn_connect;
+    lv_obj_t* obj_logs;
+    lv_obj_t* obj_state;
+    lv_obj_t* btn_connect;
 #endif
 
-        // command
-        void (*connect_server)(const char* ip, uint16_t port, const char* pass);
-    };
+    // command
+    void (*create)(vnc_screen_t* scrn);
+    void (*update_state)(vnc_screen_t* scrn, uint32_t state, uint32_t action);
+    void (*append_log)(vnc_screen_t* scrn, const char* text);
+    void (*printf_log)(vnc_screen_t* scrn, const char* format, ...);
+    void (*empty_log)(vnc_screen_t* scrn);
+};
 
 
-    enum event_command
-    {
-        EVT_SHOW_WIFI,
-        EVT_SHOW_CONN,
-        EVT_HIDE_WIFI,
-        EVT_HIDE_CONN
-    };
-
-
-
-    /**
-     *
-     */
-    vnc_screen_t* vnc_screen_init(vnc_display_t* disp);
-
-    /**
-     *
-     */
-    void vnc_screen_create(vnc_screen_t* scrn);
+enum event_command_e
+{
+    EVT_SHOW_WIFI,
+    EVT_SHOW_CONN,
+    EVT_HIDE_WIFI,
+    EVT_HIDE_CONN
+};
 
 
 
-    /**
-     *
-     */
-    vnc_screen_t* vnc_screen_get_handle();
+/**
+ *
+ */
+vnc_screen_t* vnc_screen_init(vnc_app_t* app);
+
+/**
+ *
+ */
+void vnc_screen_create(vnc_screen_t* scrn);
 
 
 
-    /**
-     *
-     */
-    void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action);
+/**
+ *
+ */
+vnc_screen_t* vnc_screen_get_handle();
 
 
 
-    /**
-      *
-      */
-    void vnc_log_append(vnc_screen_t* scrn, const char* text);
-
-    /**
-     *
-     */
-    void vnc_log_printf(vnc_screen_t* scrn, const char* format, ...);
-
-    /**
-     *
-     */
-    void vnc_log_clear(vnc_screen_t* scrn);
+/**
+ *
+ */
+void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action);
 
 
 
+/**
+ *
+ */
+void vnc_log_append(vnc_screen_t* scrn, const char* text);
 
-#ifdef __cplusplus
-}
-#endif
+/**
+ *
+ */
+void vnc_log_printf(vnc_screen_t* scrn, const char* format, ...);
+
+/**
+ *
+ */
+void vnc_log_clear(vnc_screen_t* scrn);
+
+
+
+
+END_EXTERN_C();

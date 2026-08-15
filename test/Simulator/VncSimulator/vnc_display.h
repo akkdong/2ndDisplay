@@ -20,21 +20,19 @@
 #include "bsp_display.h"
 #endif
 
-#include "extern.h"
 #include "lvgl/lvgl.h"
+#include "extern.h"
+#include "vnc_types.h"
 
 
-BEGIN_EXTERN_C()
+BEGIN_EXTERN_C();
 
 
 /**
  *
  */
 
-typedef uint16_t lcd_color_t;
-
-
-typedef struct vnc_display
+struct vnc_display_s
 {
     lv_display_t* disp_handle;
     int disp_width;
@@ -50,7 +48,7 @@ typedef struct vnc_display
 
     SemaphoreHandle_t lvgl_mux;
 
-} vnc_display_t;
+};
 
 
 
@@ -63,4 +61,4 @@ vnc_display_t* vnc_display_start(void);
 bool vnc_display_lock(vnc_display_t* disp, bool lock);
 
 
-END_EXTERN_C()
+END_EXTERN_C();

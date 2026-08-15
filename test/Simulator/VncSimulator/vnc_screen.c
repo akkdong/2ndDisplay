@@ -20,9 +20,10 @@
 
 static const char* TAG = "VNC_Scrn";
 
-static vnc_screen_t vnc_scrn;
+static vnc_screen_t vnc_screen;
 
 static char log_buf[96];
+
 
 LV_IMG_DECLARE(vnc_logo);
 
@@ -94,20 +95,39 @@ static void append_log_with_limit(lv_obj_t* ta, const char* new_text)
 
 
 
-static void vnc_handler_on_connect(const char* addr, uint16_t port, const char* pass)
+static void vnc_handler_on_connect(vnc_screen_t* scrn, const char* addr, uint16_t port, const char* pass)
 {
-    if (vnc_scrn.connect_server)
-        vnc_scrn.connect_server(addr, port, pass);
+    if (scrn && scrn->app && scrn->app->connect_server)
+        scrn->app->connect_server(scrn->app, addr, port, pass);
 }
 
 static void on_clicked_wifi(lv_event_t* evt)
 {
+    lv_obj_t* button = (lv_obj_t*)lv_event_get_target(evt);
+    vnc_screen_t* scrn = (vnc_screen_t*)lv_event_get_user_data(evt);
+
+    /*
+    wnc_wifi_popup_t* popup = vnc_wifi_popup_init(scrn);
+    if (popup)
+        popup->show_popup();
+    */
+
     show_wifi_setting_popup();
 }
 
 static void on_clicked_connect(lv_event_t* evt)
 {
-    show_vnc_connect_popup(NULL, 0, vnc_handler_on_connect);
+    lv_obj_t* button = (lv_obj_t*)lv_event_get_target(evt);
+    vnc_screen_t* scrn = (vnc_screen_t*)lv_event_get_user_data(evt);
+
+    vnc_connect_popup_t* popup = vnc_connect_popup_init(scrn, vnc_handler_on_connect);
+    if (popup)
+    {
+        if (scrn->app->get_server)
+            scrn->app->get_server(scrn->app, popup->address, &popup->port, popup->password);
+
+        popup->show_popup(popup);
+    }
 }
 
 
@@ -120,12 +140,13 @@ static void vnc_size_changed(lv_event_t* evt)
 //
 // canvas: bottom layer
 //
-static lv_obj_t* vnc_create_layer_canvas(lv_obj_t* parent)
+static lv_obj_t* vnc_create_layer_canvas(vnc_screen_t* scrn, lv_obj_t* parent)
 {
     lv_obj_t* canvas = lv_canvas_create(parent);
     //
     // ...
     // 
+    lv_obj_set_user_data(canvas, scrn);
 
     return canvas;
 }
@@ -133,7 +154,7 @@ static lv_obj_t* vnc_create_layer_canvas(lv_obj_t* parent)
 //
 // main ui
 //
-static lv_obj_t* vnc_create_layer_main(lv_obj_t* parent)
+static lv_obj_t* vnc_create_layer_main(vnc_screen_t* scrn, lv_obj_t* parent)
 {
     lv_obj_t* layer =  lv_obj_create(parent);
 
@@ -264,7 +285,7 @@ static lv_obj_t* vnc_create_layer_main(lv_obj_t* parent)
     lv_obj_t* btn_wifi = lv_button_create(bottom_container); // v9: lv_btn_create -> lv_button_create
     lv_obj_set_flex_flow(btn_wifi, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(btn_wifi, 12, 0);
-    lv_obj_add_event_cb(btn_wifi, on_clicked_wifi, LV_EVENT_CLICKED, (void*)EVT_SHOW_WIFI);
+    lv_obj_add_event_cb(btn_wifi, on_clicked_wifi, LV_EVENT_CLICKED, scrn);
 
     lv_obj_t* wifi_icon = lv_image_create(btn_wifi);
     lv_image_set_src(wifi_icon, LV_SYMBOL_WIFI);
@@ -274,7 +295,7 @@ static lv_obj_t* vnc_create_layer_main(lv_obj_t* parent)
     lv_obj_set_name(btn_connect, "btn_connect");
     lv_obj_set_flex_flow(btn_connect, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(btn_connect, 12, 0);
-    lv_obj_add_event_cb(btn_connect, on_clicked_connect, LV_EVENT_CLICKED, (void*)EVT_SHOW_CONN);
+    lv_obj_add_event_cb(btn_connect, on_clicked_connect, LV_EVENT_CLICKED, scrn);
     /*
     lv_obj_add_state(btn_connect, LV_STATE_DISABLED);
     */
@@ -291,16 +312,21 @@ static lv_obj_t* vnc_create_layer_main(lv_obj_t* parent)
  *
  *
  */
-vnc_screen_t* vnc_screen_init(vnc_display_t* disp)
+vnc_screen_t* vnc_screen_init(vnc_app_t* app/*vnc_display_t* disp*/)
 {
     ESP_LOGI(TAG, "[S] Initialize VNC screen...");
 
-    vnc_screen_t* scrn = &vnc_scrn;
+    vnc_display_t* disp = app->disp;
+    vnc_screen_t* scrn = &vnc_screen;
 
+    //
     scrn->disp_handle = disp;
     scrn->disp_width = disp->disp_width;
     scrn->disp_height = disp->disp_height;
+    //
+    scrn->app = app;
 
+    //
     scrn->layer_canvas = NULL;
     scrn->layer_main = NULL;
 #if VNC_CACHE_OBJECTS
@@ -309,14 +335,16 @@ vnc_screen_t* vnc_screen_init(vnc_display_t* disp)
     scrn->btn_connect = NULL;
 #endif
 
-    scrn->connect_server = NULL;
-    /*
-    scrn->xxx =NULL;
-    */
+    //
+    scrn->create = vnc_screen_create;
+    scrn->update_state = vnc_update_state;
+    scrn->append_log = vnc_log_append;
+    scrn->printf_log = vnc_log_printf;
+    scrn->empty_log = vnc_log_clear;
 
     ESP_LOGI(TAG, "[E] Initialize VNC screen...");
 
-    return &vnc_scrn;
+    return &vnc_screen;
 }
 
 
@@ -325,7 +353,7 @@ vnc_screen_t* vnc_screen_init(vnc_display_t* disp)
  */
 void vnc_screen_create(vnc_screen_t* scrn)
 {
-    ESP_LOGI(TAG, "Create VNC screen...");
+    ESP_LOGI(TAG, "[S] Create VNC screen...");
 
     if (vnc_display_lock(scrn->disp_handle, true))
     {
@@ -353,21 +381,21 @@ void vnc_screen_create(vnc_screen_t* scrn)
 #if 0
         // <<<<<<
         /*
-        vnc_scrn.disp_width = lv_display_get_horizontal_resolution(NULL);
-        vnc_scrn.disp_height = lv_display_get_vertical_resolution(NULL);
+        vnc_screen.disp_width = lv_display_get_horizontal_resolution(NULL);
+        vnc_screen.disp_height = lv_display_get_vertical_resolution(NULL);
         */
         // ======
-        vnc_scrn.disp_width = lv_obj_get_width(active);
-        vnc_scrn.disp_height = lv_obj_get_height(active);
+        vnc_screen.disp_width = lv_obj_get_width(active);
+        vnc_screen.disp_height = lv_obj_get_height(active);
         // >>>>>>
-        ESP_LOGI(TAG, "Screen Dimension: %d x %d", vnc_scrn.disp_width, vnc_scrn.disp_height);
+        ESP_LOGI(TAG, "Screen Dimension: %d x %d", vnc_screen.disp_width, vnc_screen.disp_height);
 #endif
 
         lv_obj_clean(active);
         lv_obj_set_style_bg_color(active, lv_color_hex(0x0E0E1E), 0);
 
-        scrn->layer_canvas = vnc_create_layer_canvas(active);
-        scrn->layer_main = vnc_create_layer_main(active);
+        scrn->layer_canvas = vnc_create_layer_canvas(scrn, active);
+        scrn->layer_main = vnc_create_layer_main(scrn, active);
 #if VNC_CACHE_OBJECTS
         scrn->obj_logs = lv_obj_find_by_name(active, "app_log");
         scrn->obj_state = lv_obj_find_by_name(active, "app_state");
@@ -381,6 +409,8 @@ void vnc_screen_create(vnc_screen_t* scrn)
         //
         vnc_display_lock(scrn->disp_handle, false);
     }
+
+    ESP_LOGI(TAG, "[E] Create VNC screen...");
 }
 
 
@@ -390,7 +420,7 @@ void vnc_screen_create(vnc_screen_t* scrn)
  */
 vnc_screen_t* vnc_screen_get_handle()
 {
-    return &vnc_scrn;
+    return &vnc_screen;
 }
 
 
@@ -437,10 +467,13 @@ void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action)
                     strcat(text, "NetIf Up");
                     break;
                 case APP_ACTION_WIFI_CONNECT:
+                    strcat(text, "NetIf Down");
+                    break;
                 case APP_ACTION_VNC_CONNECT:
-                case APP_ACTION_VNC_HANDSHAKE:
+                    strcat(text, "Connect Server");
+                    break;
                 case APP_ACTION_VNC_CLOSE:
-                    strcat(text, "?");
+                    strcat(text, "Disconnect Server");
                     break;
                 }
             }

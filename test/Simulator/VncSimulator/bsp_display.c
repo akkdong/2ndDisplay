@@ -183,5 +183,5 @@ void bsp_display_init(vnc_display_t* disp)
     disp->display_flush = bsp_display_flush;
     disp->touch_input = bsp_touch_input;
 
-    xTaskCreate(bsp_display_task, "bsp_display_task", 2 * 1024, NULL, tskIDLE_PRIORITY + 4, NULL);
+    xTaskCreate(bsp_display_task, "bsp_display_task", 2 * 1024, NULL, tskIDLE_PRIORITY + 2, NULL);
 }

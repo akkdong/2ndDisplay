@@ -3,50 +3,39 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "vnc_connect_popup.h"
 #include "lvgl/lvgl.h"
 
+#include "vnc_connect_popup.h"
 
-/**
- *
- *
- */
 
-typedef struct _vnc_connect_popup
+
+//
+//
+//
+
+/*
+typedef struct vnc_connect_popup
 {
     //
     char address[16];
     uint16_t port;
     char password[32];
 
-    on_connect_cb on_connect;
+    //
+    lv_obj_t* ta_address;
+    lv_obj_t* ta_port;
+    lv_obj_t* ta_password;
+    lv_obj_t* kb;
 
     //
-    lv_obj_t * ta_address;
-    lv_obj_t * ta_port;
-    lv_obj_t * ta_password;
-    lv_obj_t * kb;
+    on_connect_cb on_connect;
+    show_popup_cb show_popup;
 
 } vnc_connect_popup_t;
+*/
 
+static vnc_connect_popup_t vnc_popup;
 
-//
-//
-//
-
-static vnc_connect_popup_t popup;
-
-
-
-/**
- *
- *
- */
-
-static void vnc_connect_popup_init(const char* addr, uint16_t port)
-{
-
-}
 
 /**
  *
@@ -60,7 +49,7 @@ static lv_color_t get_default_button_color(void)
 
     // 2. 버튼의 메인 파트 및 디폴트 상태(LV_PART_MAIN | LV_STATE_DEFAULT)의 배경색 추출
     //    (참고: 두 값이 모두 0이므로 0을 인자로 전달해도 됩니다)
-    lv_color_t default_color = lv_obj_get_style_bg_color(dummy_btn, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_color_t default_color = lv_obj_get_style_bg_color(dummy_btn, LV_PART_MAIN);
 
     // 3. 색상 추출 완료 후 메모리 해제를 위해 더미 버튼 삭제
     lv_obj_delete(dummy_btn);
@@ -178,7 +167,9 @@ static void msgbox_event_cb(lv_event_t * e)
 
         if (msgbox_validate(popup))
         {
-            popup->on_connect(popup->address, popup->port, popup->password);
+            printf("[popup] call connect-server\n");
+            popup->on_connect(popup->scrn, popup->address, popup->port, popup->password);
+            printf("[popup] after connect-server\n");
         }
         else
         {
@@ -202,21 +193,25 @@ static void msgbox_event_cb(lv_event_t * e)
  *
  *
  */
-void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callback)
+static void vnc_connect_popup_show(vnc_connect_popup_t* popup)
 {
     // 0. initialize popup state
+    /*
     memset(&popup, 0, sizeof(popup));
     if (addr)
         strcpy_s(popup.address, sizeof(popup.address), addr);
     popup.port = port == 0 ? 5900 : port;
     popup.on_connect = callback;
+    */
+    if (popup->port == 0)
+        popup->port = 5900; // default port number
 
     // 1. create modal popup
     lv_obj_t * mbox = lv_msgbox_create(NULL);
     lv_msgbox_add_title(mbox, "Connect To Server");
     lv_msgbox_add_close_button(mbox);
-    lv_obj_set_user_data(mbox, &popup);
-    lv_obj_add_event_cb(mbox, msgbox_cleanup_event_cb, LV_EVENT_DELETE, &popup);
+    lv_obj_set_user_data(mbox, popup);
+    lv_obj_add_event_cb(mbox, msgbox_cleanup_event_cb, LV_EVENT_DELETE, popup);
     lv_obj_set_style_bg_color(mbox, lv_color_hex(0x181818), 0);
 
     // layout message-box
@@ -247,16 +242,16 @@ void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callb
     lv_label_set_text(label, "IP Address");
     lv_obj_set_style_text_color(label, lv_color_hex(0xD0D0D0), 0);
 
-    popup.ta_address = lv_textarea_create(group);
-    lv_textarea_set_one_line(popup.ta_address, true);
-    lv_textarea_set_max_length(popup.ta_address, sizeof(popup.address) - 1);
-    lv_textarea_set_placeholder_text(popup.ta_address, "192.168.100.2");
-    lv_obj_set_style_bg_color(popup.ta_address, lv_color_hex(0x222222), 0);
-    lv_obj_set_style_text_color(popup.ta_address, lv_color_hex(0xE0E0E0), 0);
-    lv_obj_set_style_text_color(popup.ta_address, lv_color_hex(0x444444), LV_PART_TEXTAREA_PLACEHOLDER);
-    lv_obj_set_style_border_color(popup.ta_address, lv_color_hex(0x888888), LV_PART_CURSOR | LV_STATE_FOCUSED);
-    lv_obj_set_width(popup.ta_address, LV_PCT(100));
-    lv_obj_add_event_cb(popup.ta_address, ta_event_cb, LV_EVENT_ALL, &popup);
+    popup->ta_address = lv_textarea_create(group);
+    lv_textarea_set_one_line(popup->ta_address, true);
+    lv_textarea_set_max_length(popup->ta_address, sizeof(popup->address) - 1);
+    lv_textarea_set_placeholder_text(popup->ta_address, "192.168.100.2");
+    lv_obj_set_style_bg_color(popup->ta_address, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_text_color(popup->ta_address, lv_color_hex(0xE0E0E0), 0);
+    lv_obj_set_style_text_color(popup->ta_address, lv_color_hex(0x444444), LV_PART_TEXTAREA_PLACEHOLDER);
+    lv_obj_set_style_border_color(popup->ta_address, lv_color_hex(0x888888), LV_PART_CURSOR);
+    lv_obj_set_width(popup->ta_address, LV_PCT(100));
+    lv_obj_add_event_cb(popup->ta_address, ta_event_cb, LV_EVENT_ALL, popup);
 
     // Port
     group = lv_obj_create(content);
@@ -275,16 +270,16 @@ void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callb
     lv_label_set_text(label, "Port");
     lv_obj_set_style_text_color(label, lv_color_hex(0xD0D0D0), 0);
 
-    popup.ta_port = lv_textarea_create(group);
-    lv_textarea_set_one_line(popup.ta_port, true);
-    lv_textarea_set_max_length(popup.ta_port, 5);
-    lv_textarea_set_placeholder_text(popup.ta_port, "5900");
-    lv_obj_set_style_bg_color(popup.ta_port, lv_color_hex(0x222222), 0);
-    lv_obj_set_style_text_color(popup.ta_port, lv_color_hex(0xE0E0E0), 0);
-    lv_obj_set_style_text_color(popup.ta_port, lv_color_hex(0x444444), LV_PART_TEXTAREA_PLACEHOLDER);
-    lv_obj_set_style_border_color(popup.ta_port, lv_color_hex(0x888888), LV_PART_CURSOR | LV_STATE_FOCUSED);
-    lv_obj_set_width(popup.ta_port, LV_PCT(80));
-    lv_obj_add_event_cb(popup.ta_port, ta_event_cb, LV_EVENT_ALL, &popup);
+    popup->ta_port = lv_textarea_create(group);
+    lv_textarea_set_one_line(popup->ta_port, true);
+    lv_textarea_set_max_length(popup->ta_port, 5);
+    lv_textarea_set_placeholder_text(popup->ta_port, "5900");
+    lv_obj_set_style_bg_color(popup->ta_port, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_text_color(popup->ta_port, lv_color_hex(0xE0E0E0), 0);
+    lv_obj_set_style_text_color(popup->ta_port, lv_color_hex(0x444444), LV_PART_TEXTAREA_PLACEHOLDER);
+    lv_obj_set_style_border_color(popup->ta_port, lv_color_hex(0x888888), LV_PART_CURSOR);
+    lv_obj_set_width(popup->ta_port, LV_PCT(80));
+    lv_obj_add_event_cb(popup->ta_port, ta_event_cb, LV_EVENT_ALL, popup);
 
     // Password
     group = lv_obj_create(content);
@@ -303,17 +298,17 @@ void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callb
     lv_label_set_text(label, "Password");
     lv_obj_set_style_text_color(label, lv_color_hex(0xD0D0D0), 0);
 
-    popup.ta_password = lv_textarea_create(group);
-    lv_textarea_set_one_line(popup.ta_password, true);
-    lv_textarea_set_max_length(popup.ta_password, sizeof(popup.password) - 1);
-    lv_textarea_set_password_mode(popup.ta_password, true);
-    lv_textarea_set_placeholder_text(popup.ta_password, "Password");
-    lv_obj_set_style_bg_color(popup.ta_password, lv_color_hex(0x222222), 0);
-    lv_obj_set_style_text_color(popup.ta_password, lv_color_hex(0xE0E0E0), 0);
-    lv_obj_set_style_text_color(popup.ta_password, lv_color_hex(0x444444), LV_PART_TEXTAREA_PLACEHOLDER);
-    lv_obj_set_style_border_color(popup.ta_password, lv_color_hex(0x888888), LV_PART_CURSOR | LV_STATE_FOCUSED);
-    lv_obj_set_width(popup.ta_password, LV_PCT(100));
-    lv_obj_add_event_cb(popup.ta_password, ta_event_cb, LV_EVENT_ALL, &popup);
+    popup->ta_password = lv_textarea_create(group);
+    lv_textarea_set_one_line(popup->ta_password, true);
+    lv_textarea_set_max_length(popup->ta_password, sizeof(popup->password) - 1);
+    lv_textarea_set_password_mode(popup->ta_password, true);
+    lv_textarea_set_placeholder_text(popup->ta_password, "Password");
+    lv_obj_set_style_bg_color(popup->ta_password, lv_color_hex(0x222222), 0);
+    lv_obj_set_style_text_color(popup->ta_password, lv_color_hex(0xE0E0E0), 0);
+    lv_obj_set_style_text_color(popup->ta_password, lv_color_hex(0x444444), LV_PART_TEXTAREA_PLACEHOLDER);
+    lv_obj_set_style_border_color(popup->ta_password, lv_color_hex(0x888888), LV_PART_CURSOR);
+    lv_obj_set_width(popup->ta_password, LV_PCT(100));
+    lv_obj_add_event_cb(popup->ta_password, ta_event_cb, LV_EVENT_ALL, popup);
 
 
     // Footer: Connect, Cancel
@@ -339,22 +334,56 @@ void show_vnc_connect_popup(const char* addr, uint16_t port, on_connect_cb callb
     }
 
     //
-    if (popup.address[0])
-        lv_textarea_set_text(popup.ta_address, popup.address);
-    if (popup.port > 0)
+    if (popup->address[0])
+        lv_textarea_set_text(popup->ta_address, popup->address);
+    if (popup->port > 0)
     {
         char port[16];
-        _itoa_s(popup.port, port, sizeof(port), 10);
-        lv_textarea_set_text(popup.ta_port, port);
+        _itoa_s(popup->port, port, sizeof(port), 10);
+        lv_textarea_set_text(popup->ta_port, port);
     }
+    if (popup->password[0])
+        lv_textarea_set_text(popup->ta_password, popup->password);
 
     // Create virtual keyboard
-    popup.kb = lv_keyboard_create(/*lv_screen_active()*/lv_layer_top());
-    lv_keyboard_set_popovers(popup.kb, true);
-    lv_obj_set_size(popup.kb, LV_PCT(100), LV_PCT(30));
-    lv_obj_align(popup.kb, LV_ALIGN_BOTTOM_MID, 0, 0);
+    popup->kb = lv_keyboard_create(/*lv_screen_active()*/lv_layer_top());
+    lv_keyboard_set_popovers(popup->kb, true);
+    lv_obj_set_size(popup->kb, LV_PCT(100), LV_PCT(30));
+    lv_obj_align(popup->kb, LV_ALIGN_BOTTOM_MID, 0, 0);
 
-    lv_obj_add_state(popup.ta_address, LV_STATE_FOCUSED);
-    lv_keyboard_set_textarea(popup.kb, popup.ta_address);
-    lv_keyboard_set_mode(popup.kb, LV_KEYBOARD_MODE_NUMBER);
+    lv_obj_add_state(popup->ta_address, LV_STATE_FOCUSED);
+    lv_keyboard_set_textarea(popup->kb, popup->ta_address);
+    lv_keyboard_set_mode(popup->kb, LV_KEYBOARD_MODE_NUMBER);
+}
+
+
+
+
+
+
+/**
+ *
+ *
+ */
+
+vnc_connect_popup_t* vnc_connect_popup_init(vnc_screen_t* scrn, on_connect_cb connect_cb)
+{
+    //
+    vnc_popup.address[0] = 0;
+    vnc_popup.port = 0;
+    vnc_popup.password[0] = 0;
+
+    vnc_popup.ta_address = NULL;
+    vnc_popup.ta_port = NULL;
+    vnc_popup.ta_password = NULL;
+    vnc_popup.kb = NULL;
+
+    //
+    vnc_popup.scrn = scrn;
+
+    vnc_popup.on_connect = connect_cb;
+    vnc_popup.show_popup = vnc_connect_popup_show;
+
+
+    return &vnc_popup;
 }

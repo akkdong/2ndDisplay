@@ -99,6 +99,7 @@
     </ClCompile>
     <ClCompile Include="net_state.c" />
     <ClCompile Include="VncSimulator.c" />
+    <ClCompile Include="vnc_client.c" />
     <ClCompile Include="vnc_connect_popup.c" />
     <ClCompile Include="vnc_display.c" />
     <ClCompile Include="vnc_logo.c" />
@@ -111,9 +112,11 @@
     <ClInclude Include="esp_log.h" />
     <ClInclude Include="extern.h" />
     <ClInclude Include="net_state.h" />
+    <ClInclude Include="vnc_client.h" />
     <ClInclude Include="vnc_connect_popup.h" />
     <ClInclude Include="vnc_display.h" />
     <ClInclude Include="vnc_screen.h" />
+    <ClInclude Include="vnc_types.h" />
     <ClInclude Include="wifi_setting_popup.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
