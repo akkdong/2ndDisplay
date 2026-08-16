@@ -47,7 +47,6 @@ struct vnc_display_s
 #endif
 
     SemaphoreHandle_t lvgl_mux;
-
 };
 
 
@@ -58,7 +57,8 @@ struct vnc_display_s
 
 vnc_display_t* vnc_display_start(void);
 
-bool vnc_display_lock(vnc_display_t* disp, bool lock);
+bool vnc_display_lock(vnc_display_t* disp);
+bool vnc_display_unlock(vnc_display_t* disp);
 
 
 END_EXTERN_C();

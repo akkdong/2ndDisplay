@@ -282,7 +282,7 @@ extern void vLoggingPrintf( const char * pcFormatString,
 
 /* Each TCP socket has a circular buffers for Rx and Tx, which have a fixed
  * maximum size.  Define the size of Rx buffer for TCP sockets. */
-#define ipconfigTCP_RX_BUFFER_LENGTH                   ( 4096U )
+#define ipconfigTCP_RX_BUFFER_LENGTH                   ( 40960U )
 
 /* Define the size of Tx buffer for TCP sockets. */
 #define ipconfigTCP_TX_BUFFER_LENGTH                   ( 4096U )

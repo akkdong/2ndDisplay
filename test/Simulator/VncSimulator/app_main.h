@@ -100,12 +100,14 @@ struct vnc_app_s
     app_state_t state;
     app_action_t action;
 
+    SemaphoreHandle_t app_mux;
     QueueHandle_t event_queue;
 
     //
+    void (*send_event)(app_event_t event, uint32_t data);
     void (*connect_server)(vnc_app_t* app, const char* ip, uint16_t port, const char* pass);
 
-    void (*get_server)(vnc_app_t* app, char* ip, uint16_t* port, char* pass);
+    void (*get_server_info)(vnc_app_t* app, char* ip, uint16_t* port, char* pass);
 
 };
 
@@ -116,23 +118,24 @@ struct vnc_app_s
 //
 
 /*
-
-*/
+ *
+ */
 void vnc_app_init();
 
 
 /*
-
-*/
-vnc_app_t* vnc_app_instance(void);
-
-
-/*
-
-*/
-bool vnc_app_event_send(app_event_t event, uint32_t data);
+ *
+ */
+vnc_app_t* vnc_app_get_instance(void);
 
 
+bool vnc_app_send_event(app_event_t event, uint32_t data);
+void vnc_app_connect_server(vnc_app_t* app, const char* addr, uint16_t port, const char* pass);
+
+void vnc_app_get_server(vnc_app_t* app, char* addr, uint16_t* port, char* pass);
+
+
+void vnc_app_set_state(vnc_app_t* app, app_state_t state, app_action_t action);
 
 
 END_EXTERN_C();

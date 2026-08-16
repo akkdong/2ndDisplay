@@ -133,7 +133,7 @@ void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent)
          * created. */
         if (xTasksAlreadyCreated == pdFALSE)
         {
-            vnc_app_event_send(NETWORK_CONNECTED, ulIPAddress);
+            vnc_app_send_event(NETWORK_CONNECTED, ulIPAddress);
             xTasksAlreadyCreated = pdTRUE;
         }
         else

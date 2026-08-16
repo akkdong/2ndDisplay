@@ -123,8 +123,8 @@ static void on_clicked_connect(lv_event_t* evt)
     vnc_connect_popup_t* popup = vnc_connect_popup_init(scrn, vnc_handler_on_connect);
     if (popup)
     {
-        if (scrn->app->get_server)
-            scrn->app->get_server(scrn->app, popup->address, &popup->port, popup->password);
+        if (scrn->app->get_server_info)
+            scrn->app->get_server_info(scrn->app, popup->address, &popup->port, popup->password);
 
         popup->show_popup(popup);
     }
@@ -337,7 +337,7 @@ vnc_screen_t* vnc_screen_init(vnc_app_t* app/*vnc_display_t* disp*/)
 
     //
     scrn->create = vnc_screen_create;
-    scrn->update_state = vnc_update_state;
+    scrn->update_state = vnc_screen_update_state;
     scrn->append_log = vnc_log_append;
     scrn->printf_log = vnc_log_printf;
     scrn->empty_log = vnc_log_clear;
@@ -355,7 +355,7 @@ void vnc_screen_create(vnc_screen_t* scrn)
 {
     ESP_LOGI(TAG, "[S] Create VNC screen...");
 
-    if (vnc_display_lock(scrn->disp_handle, true))
+    if (vnc_display_lock(scrn->disp_handle))
     {
         //
         /*
@@ -407,7 +407,7 @@ void vnc_screen_create(vnc_screen_t* scrn)
         lv_obj_add_event_cb(active, vnc_size_changed, LV_EVENT_SIZE_CHANGED, 0);
 
         //
-        vnc_display_lock(scrn->disp_handle, false);
+        vnc_display_unlock(scrn->disp_handle);
     }
 
     ESP_LOGI(TAG, "[E] Create VNC screen...");
@@ -428,9 +428,9 @@ vnc_screen_t* vnc_screen_get_handle()
 /**
  *
  */
-void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action)
+void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action)
 {
-    vnc_display_lock(scrn->disp_handle, true);
+    vnc_display_lock(scrn->disp_handle);
     {
 #if VNC_CACHE_OBJECTS
         lv_obj_t* label = scrn->obj_state;
@@ -485,7 +485,7 @@ void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action)
             */
         }
     }
-    vnc_display_lock(scrn->disp_handle, false);
+    vnc_display_unlock(scrn->disp_handle);
 }
 
 
@@ -494,7 +494,7 @@ void vnc_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action)
  */
 void vnc_log_append(vnc_screen_t* scrn, const char* text)
 {
-    vnc_display_lock(scrn->disp_handle, true);
+    vnc_display_lock(scrn->disp_handle);
     {
 #if VNC_CACHE_OBJECTS
         lv_obj_t* ta = scrn->obj_logs;
@@ -504,7 +504,7 @@ void vnc_log_append(vnc_screen_t* scrn, const char* text)
         if (ta)
             append_log_with_limit(ta, text);
     }
-    vnc_display_lock(scrn->disp_handle, false);
+    vnc_display_unlock(scrn->disp_handle);
 }
 
 /**
@@ -515,7 +515,7 @@ void vnc_log_printf(vnc_screen_t* scrn, const char* format, ...)
     va_list args;
 
     va_start(args, format);
-    vsnprintf(log_buf, sizeof(log_buf), format, args);
+    vsnprintf(log_buf, sizeof(log_buf) - 1, format, args);
     va_end(args);
 
     vnc_log_append(scrn, log_buf);
@@ -526,7 +526,7 @@ void vnc_log_printf(vnc_screen_t* scrn, const char* format, ...)
  */
 void vnc_log_clear(vnc_screen_t* scrn)
 {
-    vnc_display_lock(scrn->disp_handle, true);
+    vnc_display_lock(scrn->disp_handle);
     {
 #if VNC_CACHE_OBJECTS
         lv_obj_t* ta = scrn->obj_logs;
@@ -536,5 +536,5 @@ void vnc_log_clear(vnc_screen_t* scrn)
         if (ta)
             lv_textarea_set_text(ta, "");
     }
-    vnc_display_lock(scrn->disp_handle, false);
+    vnc_display_unlock(scrn->disp_handle);
 }

@@ -93,11 +93,13 @@
   <ItemGroup>
     <ClCompile Include="app_main.c" />
     <ClCompile Include="bsp_display.c" />
+    <ClCompile Include="d3des.c" />
     <ClCompile Include="hooks.c" />
     <ClCompile Include="main.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="net_state.c" />
+    <ClCompile Include="tight_decoder.c" />
     <ClCompile Include="VncSimulator.c" />
     <ClCompile Include="vnc_client.c" />
     <ClCompile Include="vnc_connect_popup.c" />
@@ -109,9 +111,11 @@
   <ItemGroup>
     <ClInclude Include="app_main.h" />
     <ClInclude Include="bsp_display.h" />
+    <ClInclude Include="d3des.h" />
     <ClInclude Include="esp_log.h" />
     <ClInclude Include="extern.h" />
     <ClInclude Include="net_state.h" />
+    <ClInclude Include="tight_decoder.h" />
     <ClInclude Include="vnc_client.h" />
     <ClInclude Include="vnc_connect_popup.h" />
     <ClInclude Include="vnc_display.h" />
