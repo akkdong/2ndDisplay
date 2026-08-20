@@ -85,6 +85,7 @@ vnc_screen_t* vnc_screen_get_handle();
  */
 void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action);
 
+void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size);
 
 
 /**

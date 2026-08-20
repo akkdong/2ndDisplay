@@ -48,9 +48,11 @@ enum app_event_e
     NETWORK_CONNECTED = 1000,
     NETWORK_DISCONNECTED,
 
-    VNC_CONNECT_SERVER = 2000,
-    VNC_CONNECTED,
-    VNC_DISCONNECTED,
+    VNC_CONNECT_TO_SERVER = 2000,
+    VNC_SERVER_CONNECTED,           // data1 == -1 on fail
+    VNC_HANDSHAKE_FINISHED,         // data1 == -1 on fail
+    VNC_SERVER_DISCONNECTED,
+
 
 };
 
@@ -63,7 +65,10 @@ enum app_event_e
 typedef struct AppEventMsg
 {
     app_event_t id;
-    uint32_t data;
+
+    uint32_t data1;
+    uint32_t data2;
+    uint32_t data3;
 } AppEventMsg_t;
 
 
@@ -104,7 +109,7 @@ struct vnc_app_s
     QueueHandle_t event_queue;
 
     //
-    void (*send_event)(app_event_t event, uint32_t data);
+    void (*send_event)(vnc_app_t* app, app_event_t event, uint32_t data1, uint32_t data2, uint32_t data3);
     void (*connect_server)(vnc_app_t* app, const char* ip, uint16_t port, const char* pass);
 
     void (*get_server_info)(vnc_app_t* app, char* ip, uint16_t* port, char* pass);
@@ -129,13 +134,14 @@ void vnc_app_init();
 vnc_app_t* vnc_app_get_instance(void);
 
 
-bool vnc_app_send_event(app_event_t event, uint32_t data);
+bool vnc_app_send_event(vnc_app_t* app, app_event_t event, uint32_t data1, uint32_t data2, uint32_t data3);
+
 void vnc_app_connect_server(vnc_app_t* app, const char* addr, uint16_t port, const char* pass);
 
 void vnc_app_get_server(vnc_app_t* app, char* addr, uint16_t* port, char* pass);
 
-
+/*
 void vnc_app_set_state(vnc_app_t* app, app_state_t state, app_action_t action);
-
+*/
 
 END_EXTERN_C();

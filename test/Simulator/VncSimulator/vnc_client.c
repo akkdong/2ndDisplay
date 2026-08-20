@@ -58,8 +58,11 @@ static bool read_exact(SOCKET fd, uint8_t* buf, size_t len)
 
         if (n == 0) 
             return false;
-        if (n == EINTR) 
+        n = 0 - n;
+        if (n == pdFREERTOS_ERRNO_EINTR)
             continue;
+        if (n == pdFREERTOS_ERRNO_EWOULDBLOCK)
+            return false;
 
         return false;
     }
@@ -137,32 +140,27 @@ static vnc_client_task(void* param)
 
     vnc_client_t* client = (vnc_client_t*)param;
     vnc_app_t* app = client->app;
-    vnc_app_set_state(app, app->state, APP_ACTION_VNC_CONNECT);
 
     if (vnc_client_connect(client, app->server_addr, app->server_port, 5000))
     {
-        vnc_log_printf(app->scrn, "[Client] Connect to server: %s\n", app->server_addr);
+        vnc_app_send_event(app, VNC_SERVER_CONNECTED, 0, 0, 0);
 
         if (vnc_client_handshake(client, app->server_pass))
         {
-            vnc_log_append(app->scrn, "[Client] Negotiation established\n");
-
-            vnc_app_set_state(app, APP_STATE_PLAY, APP_ACTION_NONE);
-            vnc_log_append(app->scrn, "[Client] Run\n");
+            vnc_app_send_event(app, VNC_HANDSHAKE_FINISHED, client->fbw, client->fbh, client->bpp);
             vnc_client_run(client);
-            vnc_log_append(app->scrn, "[Client] Exit\n");
+            vnc_app_send_event(app, VNC_SERVER_DISCONNECTED, 0, 0, 0);
         }
         else
         {
-            vnc_log_append(app->scrn, "[Client] Failed Negotiation\n");
+            vnc_app_send_event(app, VNC_HANDSHAKE_FINISHED, -1, -1, -1);
         }
     }
     else
     {
-        vnc_log_append(app->scrn, "[Client] Failed to connect to server\n");
+        vnc_app_send_event(app, VNC_SERVER_DISCONNECTED, -1, -1, -1);
     }
 
-    vnc_app_set_state(app, APP_STATE_READY, APP_ACTION_NONE);
 
     /*
     uint32_t count = 0;
@@ -220,6 +218,27 @@ bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, i
 
     BaseType_t size = 60 * 1024;
     BaseType_t ret = FreeRTOS_setsockopt(client->fd, 0, FREERTOS_SO_RCVBUF, &size, 0);
+
+    Socket_t xSocket = client->fd;
+    {
+        // pdMS_TO_TICKS를 사용하여 밀리초(ms)를 FreeRTOS 틱 단위로 변환합니다.
+        TickType_t xReceiveTimeout = pdMS_TO_TICKS(5000); // 5초 타임아웃
+        TickType_t xSendTimeout = pdMS_TO_TICKS(2000);    // 3초 타임아웃
+
+        // 수신(recv) 타임아웃 설정
+        FreeRTOS_setsockopt(xSocket,
+            0,
+            FREERTOS_SO_RCVTIMEO,
+            &xReceiveTimeout,
+            sizeof(xReceiveTimeout));
+
+        // 송신(send) 타임아웃 설정
+        FreeRTOS_setsockopt(xSocket,
+            0,
+            FREERTOS_SO_SNDTIMEO,
+            &xSendTimeout,
+            sizeof(xSendTimeout));
+    }
 
     sockaddr addr;   
     memset(&addr, 0, sizeof(addr));
@@ -406,6 +425,33 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
         _free(name);
     }
 
+#if SUPPORT_SETPIXELFORMAT
+    // 5. SetPixelFormat
+    uint8_t msg[4] = { 0, 0, 0, 0 };
+    if (!write_exact(client->fd, &msg[0], sizeof(msg)))
+    {
+        vnc_log_printf(client->scrn, "[Client] SetPixelFormat phase1 failed.\n");
+        return false;
+    }
+
+    client->fmt.bpp = 16;
+    client->fmt.depth = 16;
+    client->fmt.big_endian = 0;
+    client->fmt.true_color = 1;
+    client->fmt.red_max = 31; // 2^5 - 1
+    client->fmt.green_max = 63; // 2^6 - 1
+    client->fmt.blue_max = 31; // 2^5 - 1
+    client->fmt.red_shift = 11;
+    client->fmt.green_shift = 5;
+    client->fmt.blue_shift = 0;
+
+    if (!write_exact(client->fd, &client->fmt, sizeof(client->fmt)))
+    {
+        vnc_log_printf(client->scrn, "[Client] SetPixelFormat phase2 failed.\n");
+        return false;
+    }
+#endif
+
     const size_t fb_pixels = client->fbw * client->fbh; // *(client->fmt.bpp / 8); // sizeof(uint16_t);
     if (fb_pixels > 0x10000000) 
     {
@@ -413,17 +459,23 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
         return false;
     }
 
-    client->fb = _malloc(fb_pixels * sizeof(uint32_t));
-    if (!client->fb)
-        return false;
-    client->fb_pixels = fb_pixels;
-
     client->bpp = client->fmt.bpp / 8;
 
     if (client->bpp < 1) 
         client->bpp = 1;
     if (client->bpp > 4) 
         client->bpp = 4;
+
+    client->fb = malloc(fb_pixels * client->bpp);
+    if (!client->fb)
+        return false;
+    client->fb_pixels = fb_pixels;
+
+    client->rbuf_ptr = malloc(fb_pixels * client->bpp);
+    if (!client->rbuf_ptr)
+        return false;
+    client->rbuf_len = fb_pixels;
+
 
     // Resize the LVGL display/window to the VNC framebuffer size and
     // (re)build the overlay UI on top of the VNC canvas
@@ -443,13 +495,17 @@ void vnc_client_loop(vnc_client_t* self)
     // Send pending FB request
     if (self->need_update) 
     {
-        uint8_t fb_req_inc[] = { 3, 0, 0,0, 0,0, 0,0, 0,0 };
+        uint8_t fb_req_inc[] = { 3, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
         fb_req_inc[6] = (self->fbw >> 8) & 0xFF;
         fb_req_inc[7] = self->fbw & 0xFF;
         fb_req_inc[8] = (self->fbh >> 8) & 0xFF;
         fb_req_inc[9] = self->fbh & 0xFF;
+        printf("FramebufferUpdateRequest: 1\n");
         if (!write_exact(self->fd, fb_req_inc, 10))
+        {
+            printf("  --> failed\n");
             self->break_loop = 1;
+        }
         self->need_update = 0;
     }
 
@@ -463,7 +519,7 @@ void vnc_client_loop(vnc_client_t* self)
         return;
     }
 
-    if (msg_type == 0) 
+    if (msg_type == 0) // FramebufferUpdate
     {
         uint8_t pad;
         uint16_t nrects;
@@ -482,6 +538,7 @@ void vnc_client_loop(vnc_client_t* self)
             if (msg_ok) 
             {
                 nrects = (uint16_t)(((uint16_t)nrbuf[0] << 8) | nrbuf[1]);
+                printf("nrets = %d\n", nrects);
                 for (int i = 0; i < nrects && msg_ok; ++i) 
                 {
                     uint8_t rect_hdr[12];
@@ -497,6 +554,7 @@ void vnc_client_loop(vnc_client_t* self)
                     uint16_t rh = (uint16_t)(((uint16_t)rect_hdr[6] << 8) | rect_hdr[7]);
                     int32_t encoding = ((int32_t)rect_hdr[8] << 24) | ((int32_t)rect_hdr[9] << 16) |
                         ((int32_t)rect_hdr[10] << 8) | rect_hdr[11];
+                    printf("rect #%d: (%d, %d, %d, %d), %d\n", i, rx, ry, rw, rh, encoding);
                     if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) 
                     {
                         fprintf(stderr, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)\n",
@@ -519,7 +577,7 @@ void vnc_client_loop(vnc_client_t* self)
                             msg_ok = 0; 
                             break; 
                         }
-                        printf("read on page\n");
+                        printf("read rect#%d done\n", i);
                         const uint8_t* src = pixels;
                         for (int y = 0; y < rh; ++y)
                             for (int x = 0; x < rw; ++x) 
@@ -576,17 +634,17 @@ void vnc_client_loop(vnc_client_t* self)
 
         // Publish the decoded frame to the Display-owned canvas buffer and
         // signal the main thread (display_loop drains the event queue)
-        /*
-        if (self->disp) {
-            display_publish_frame(self->disp, self->fb, self->fb_pixels);
-            display_push_event(self->disp, EVT_UPDATE_FRAMEBUFFER);
+        if (self->scrn) 
+        {
+            vnc_screen_publish_frame(self->scrn, self->fb, self->fb_pixels);
+            //vnc_screen_push_event(self->scrn, EVT_UPDATE_FRAMEBUFFER);
         }
-        */
         printf("update display\n");
         self->need_update = 1;
 
     }
-    else if (msg_type == 1) {
+    else if (msg_type == 1) // SetColourMapEntries
+    {
         uint8_t pad;
         uint8_t fcbuf[2], ncbuf[2];
         if (!vnc_client_read_u8(self, &pad)) { self->break_loop = 1; return; }
@@ -605,10 +663,12 @@ void vnc_client_loop(vnc_client_t* self)
         }
 
     }
-    else if (msg_type == 2) {
+    else if (msg_type == 2) 
+    {
         // Bell
     }
-    else if (msg_type == 3) {
+    else if (msg_type == 3) // ServerCutText
+    {
         uint8_t pad[3];
         if (!vnc_client_read_bytes(self, pad, 3)) { self->break_loop = 1; return; }
         uint8_t clbuf[4];
@@ -641,10 +701,10 @@ void vnc_client_run(vnc_client_t* client)
         2,          // message type
         0,          // padding
         0, 2,       // number of encodings
-        0, 0, 0, 7,  // Tight (h/w decode on embedded target)
+        0, 0, 0, 0, // Raw (desktop fallback)
         0, 0, 0, 1, // CopyRect
 #if 0
-        0, 0, 0, 0, // Raw (desktop fallback)
+        0, 0, 0, 7,  // Tight (h/w decode on embedded target)
 #endif
     };
 
@@ -657,7 +717,7 @@ void vnc_client_run(vnc_client_t* client)
 
     // Send initial full FB update request
     client->need_update = true;
-#if 0
+#if 1
     uint8_t fb_req_full[] = 
     { 
         3, 0, 0, 0, 0, 0, 0, 0, 0, 0 
@@ -668,12 +728,15 @@ void vnc_client_run(vnc_client_t* client)
     fb_req_full[8] = (client->fbh >> 8) & 0xFF;
     fb_req_full[9] = client->fbh & 0xFF;
 
+    printf("FramebufferUpdateRequest: 0\n");
     if (!write_exact(client->fd, fb_req_full, 10)) 
     {
         vnc_log_append(client->scrn, "[Client] Failed FB request\n");
         client->break_loop = true;
         return;
     }
+
+    client->need_update = false;
 #endif
 
     while (vnc_client_isOk(client))
@@ -726,15 +789,14 @@ static void vnc_client_deinit(vnc_client_t* client)
     if (client->fb)
     {
         vnc_log_append(client->scrn, "[Client] _free Frame Buffer\n");
-        _free(client->fb);
+        free(client->fb);
     }
-    /*
-    if (client->rbuf_ptr_)
+
+    if (client->rbuf_ptr)
     {
         vnc_log_append(client->scrn, "[Client] _free Receive Buffer\n");
-        _free(client->rbuf_ptr_);
+        free(client->rbuf_ptr);
     }
-    */
 
     if (client->fd != INVALID_SOCKET)
     {

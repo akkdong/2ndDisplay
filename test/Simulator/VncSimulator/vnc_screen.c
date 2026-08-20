@@ -488,6 +488,15 @@ void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action
     vnc_display_unlock(scrn->disp_handle);
 }
 
+/**
+ *
+ */
+void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size)
+{
+
+}
+
+
 
 /**
  *

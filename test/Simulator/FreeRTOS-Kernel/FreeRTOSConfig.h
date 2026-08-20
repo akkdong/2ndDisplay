@@ -143,7 +143,8 @@ void vConfigureTimerForRunTimeStats( void );
 /*
  * 
  */
-#define configNETWORK_INTERFACE_TYPE_TO_USE "Network adapter 'Realtek PCIe GbE Family Controller' on local host"
+//#define configNETWORK_INTERFACE_TYPE_TO_USE "Network adapter 'Realtek PCIe GbE Family Controller' on local host"
+#define configNETWORK_INTERFACE_TYPE_TO_USE "Network adapter 'Intel(R) Ethernet Connection (2) I219-V' on local host"
 
 /* The address to which logging is sent should UDP logging be enabled. */
 #define configUDP_LOGGING_ADDR0             192

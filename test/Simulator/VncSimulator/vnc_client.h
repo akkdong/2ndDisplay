@@ -147,8 +147,8 @@ struct vnc_client_s
     z_stream zstream[4];
 
     // Recv buffer for non-blocking I/O
-    //uint8_t* rbuf_ptr;
-    //uint32_t rbuf_len;
+    uint8_t* rbuf_ptr;
+    uint32_t rbuf_len;
     //size_t rpos;
 
     //
