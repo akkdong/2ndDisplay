@@ -14,11 +14,10 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
-#include "esp_log.h"
 #include "esp_timer.h"
-
 #include "bsp_display.h"
 #endif
+#include "esp_log.h"
 
 #include "lvgl/lvgl.h"
 #include "extern.h"

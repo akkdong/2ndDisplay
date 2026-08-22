@@ -42,6 +42,8 @@ struct vnc_screen_s
     lv_obj_t* btn_connect;
 #endif
 
+    uint8_t* disp_buf;
+
     // command
     void (*create)(vnc_screen_t* scrn);
     void (*update_state)(vnc_screen_t* scrn, uint32_t state, uint32_t action);
@@ -83,6 +85,10 @@ vnc_screen_t* vnc_screen_get_handle();
 /**
  *
  */
+bool vnc_screen_start_play(vnc_screen_t* scrn, int width, int height, int bpp);
+
+void vnc_screen_stop_play(vnc_screen_t* scrn);
+
 void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action);
 
 void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size);

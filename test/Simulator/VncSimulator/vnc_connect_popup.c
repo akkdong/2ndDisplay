@@ -3,10 +3,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include "esp_log.h"
 #include "lvgl/lvgl.h"
 
 #include "vnc_connect_popup.h"
 
+static const char* TAG = "CPOPUP";
 
 
 //
@@ -167,9 +170,9 @@ static void msgbox_event_cb(lv_event_t * e)
 
         if (msgbox_validate(popup))
         {
-            printf("[popup] call connect-server\n");
+            ESP_LOGI(TAG, "[popup] call connect-server");
             popup->on_connect(popup->scrn, popup->address, popup->port, popup->password);
-            printf("[popup] after connect-server\n");
+            ESP_LOGI(TAG, "[popup] after connect-server");
         }
         else
         {

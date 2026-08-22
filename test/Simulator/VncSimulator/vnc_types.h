@@ -18,3 +18,9 @@ typedef enum app_action_e app_action_t;
 typedef enum app_event_e app_event_t;
 
 typedef uint16_t lcd_color_t;
+
+
+#define heap_caps_malloc(x, y)		malloc(x)
+#define heap_caps_free(ptr)			free(ptr)
+
+//#define ESP_LOGI(TAG, fmt, ...)		printf(fmt, ##__VA_ARGS__)

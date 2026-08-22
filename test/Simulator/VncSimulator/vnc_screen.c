@@ -334,6 +334,7 @@ vnc_screen_t* vnc_screen_init(vnc_app_t* app/*vnc_display_t* disp*/)
     scrn->obj_state = NULL;
     scrn->btn_connect = NULL;
 #endif
+    scrn->disp_buf = NULL;
 
     //
     scrn->create = vnc_screen_create;
@@ -428,6 +429,86 @@ vnc_screen_t* vnc_screen_get_handle()
 /**
  *
  */
+bool vnc_screen_start_play(vnc_screen_t* scrn, int width, int height, int bpp)
+{
+    vnc_display_lock(scrn->disp_handle);
+    {
+        if (scrn->disp_buf)
+            heap_caps_free(scrn->disp_buf);
+
+        scrn->disp_buf = heap_caps_malloc(width * height * bpp, MALLOC_CAP_SPIRAM);
+        if (scrn->disp_buf)
+        {
+            uint8_t* ptr = scrn->disp_buf;
+            for (int y = 0; y < height; ++y)
+            {
+                for (int x = 0; x < width; ++x)
+                {
+                    ptr[0] = 0xFF;
+                    ptr[1] = 0x00;
+                    ptr[2] = 0x00;
+                    ptr[3] = (uint8_t)(255 * y / height);
+
+                    ptr += 4;
+                }
+            }
+
+            lv_canvas_set_buffer(scrn->layer_canvas, scrn->disp_buf, width, height, LV_COLOR_FORMAT_ARGB8888);
+        }
+
+        lv_obj_add_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
+    }
+    vnc_display_unlock(scrn->disp_handle);
+
+    return true;
+}
+
+/**
+ *
+ */
+void vnc_screen_stop_play(vnc_screen_t* scrn)
+{
+    vnc_display_lock(scrn->disp_handle);
+    {
+        lv_obj_clear_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
+
+        if (scrn->disp_buf)
+        {
+            ESP_LOGI(TAG, "Clear Canvas");
+            lv_canvas_fill_bg(scrn->layer_canvas, lv_color_white(), LV_OPA_COVER);
+            ESP_LOGI(TAG, "Clear Canvas Buffer");
+            lv_canvas_set_buffer(scrn->layer_canvas, NULL, 0, 0, LV_COLOR_FORMAT_ARGB8888);
+
+            //heap_caps_free(scrn->disp_buf);
+            //scrn->disp_buf = NULL;
+        }
+    }
+    vnc_display_unlock(scrn->disp_handle);
+}
+
+
+/**
+ *
+ */
+void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size)
+{
+    vnc_display_lock(scrn->disp_handle);
+    {
+        if (scrn->disp_buf)
+        {
+            memcpy(scrn->disp_buf, buf, size);
+
+            lv_obj_invalidate(scrn->layer_canvas);
+        }
+    }
+    vnc_display_unlock(scrn->disp_handle);
+}
+
+
+
+/**
+ *
+ */
 void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action)
 {
     vnc_display_lock(scrn->disp_handle);
@@ -487,15 +568,6 @@ void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action
     }
     vnc_display_unlock(scrn->disp_handle);
 }
-
-/**
- *
- */
-void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size)
-{
-
-}
-
 
 
 /**

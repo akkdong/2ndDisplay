@@ -150,6 +150,8 @@ struct vnc_client_s
     uint8_t* rbuf_ptr;
     uint32_t rbuf_len;
     //size_t rpos;
+    uint8_t* temp_ptr;
+    uint32_t temp_len;
 
     //
     volatile bool break_loop;

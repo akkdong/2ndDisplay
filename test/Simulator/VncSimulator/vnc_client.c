@@ -8,6 +8,8 @@
 #include "tight_decoder.h"
 #include <jpeglib.h>
 
+static const char* TAG = "CLIENT";
+
 
 //
 // local static functions
@@ -28,6 +30,8 @@ static int vnc_client_read_u8(vnc_client_t* client, uint8_t* v);
 static int vnc_client_read_bytes(vnc_client_t* client, uint8_t* dst, size_t n);
 static int vnc_client_read_clen(vnc_client_t* client, size_t* len);
 static int vnc_client_rect_ok(vnc_client_t* client, int rx, int ry, int rw, int rh);
+static int vnc_client_raw_decode(vnc_client_t* client, int rx, int ry, int rw, int rh, int bpp);
+static int vnc_client_zrle_decode(vnc_client_t* client, int rx, int ry, int rw, int rh, int bpp);
 static int vnc_client_tight_decode(vnc_client_t* client, int rx, int ry, int rw, int rh, int bpp);
 
 
@@ -56,9 +60,12 @@ static bool read_exact(SOCKET fd, uint8_t* buf, size_t len)
             continue;
         }
 
-        if (n == 0) 
+        if (n == 0) // disconnected
+        {
+            ESP_LOGI(TAG, "Socket Disconnected");
             return false;
-        n = 0 - n;
+        }
+        n = 0 - n; // error
         if (n == pdFREERTOS_ERRNO_EINTR)
             continue;
         if (n == pdFREERTOS_ERRNO_EWOULDBLOCK)
@@ -136,7 +143,7 @@ static void vnc_encrypt_challenge(const uint8_t* challenge, const char* password
 
 static vnc_client_task(void* param)
 {
-    printf("[vnc_client] enter task.\n");
+    ESP_LOGI(TAG, "[vnc_client] enter task.");
 
     vnc_client_t* client = (vnc_client_t*)param;
     vnc_app_t* app = client->app;
@@ -173,7 +180,7 @@ static vnc_client_task(void* param)
     }
     */
 
-    printf("[vnc_client] leave task.\n");
+    ESP_LOGI(TAG, "[vnc_client] leave task.");
     vnc_client_deinit(client);
     vTaskDelete(NULL);
 }
@@ -466,15 +473,20 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     if (client->bpp > 4) 
         client->bpp = 4;
 
-    client->fb = malloc(fb_pixels * client->bpp);
+    client->fb = heap_caps_malloc(fb_pixels * client->bpp, MALLOC_CAP_SPIRAM);
     if (!client->fb)
         return false;
     client->fb_pixels = fb_pixels;
 
-    client->rbuf_ptr = malloc(fb_pixels * client->bpp);
+    client->rbuf_ptr = heap_caps_malloc(fb_pixels * client->bpp, MALLOC_CAP_SPIRAM);
     if (!client->rbuf_ptr)
         return false;
     client->rbuf_len = fb_pixels;
+
+    client->temp_ptr = heap_caps_malloc(fb_pixels * client->bpp, MALLOC_CAP_SPIRAM);
+    if (!client->temp_ptr)
+        return false;
+    client->temp_len = fb_pixels;
 
 
     // Resize the LVGL display/window to the VNC framebuffer size and
@@ -500,10 +512,10 @@ void vnc_client_loop(vnc_client_t* self)
         fb_req_inc[7] = self->fbw & 0xFF;
         fb_req_inc[8] = (self->fbh >> 8) & 0xFF;
         fb_req_inc[9] = self->fbh & 0xFF;
-        printf("FramebufferUpdateRequest: 1\n");
+        ESP_LOGI(TAG, "FramebufferUpdateRequest: 1");
         if (!write_exact(self->fd, fb_req_inc, 10))
         {
-            printf("  --> failed\n");
+            ESP_LOGI(TAG, "  --> failed");
             self->break_loop = 1;
         }
         self->need_update = 0;
@@ -514,7 +526,7 @@ void vnc_client_loop(vnc_client_t* self)
     if (!vnc_client_read_u8(self, &msg_type)) 
     {
         if (!self->break_loop) 
-            fprintf(stderr, "Server disconnected\n");
+            ESP_LOGE(TAG, "Server disconnected");
         self->break_loop = 1;
         return;
     }
@@ -538,7 +550,7 @@ void vnc_client_loop(vnc_client_t* self)
             if (msg_ok) 
             {
                 nrects = (uint16_t)(((uint16_t)nrbuf[0] << 8) | nrbuf[1]);
-                printf("nrets = %d\n", nrects);
+                ESP_LOGI(TAG, "nrets = %d", nrects);
                 for (int i = 0; i < nrects && msg_ok; ++i) 
                 {
                     uint8_t rect_hdr[12];
@@ -554,39 +566,22 @@ void vnc_client_loop(vnc_client_t* self)
                     uint16_t rh = (uint16_t)(((uint16_t)rect_hdr[6] << 8) | rect_hdr[7]);
                     int32_t encoding = ((int32_t)rect_hdr[8] << 24) | ((int32_t)rect_hdr[9] << 16) |
                         ((int32_t)rect_hdr[10] << 8) | rect_hdr[11];
-                    printf("rect #%d: (%d, %d, %d, %d), %d\n", i, rx, ry, rw, rh, encoding);
+                    ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
                     if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) 
                     {
-                        fprintf(stderr, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)\n",
+                        ESP_LOGI(TAG, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)",
                             rx, ry, rw, rh, self->fbw, self->fbh);
                         msg_ok = 0;
                         break;
                     }
+
                     if (encoding == 0) 
                     {
-                        size_t pix_bytes = (size_t)rw * rh * (size_t)self->bpp;
-                        uint8_t* pixels = (uint8_t*)malloc(pix_bytes ? pix_bytes : 1);
-                        if (!pixels) 
-                        { 
-                            msg_ok = 0; 
-                            break; 
+                        if (!vnc_client_raw_decode(self, rx, ry, rw, rh, self->bpp))
+                        {
+                            msg_ok = 0;
+                            break;
                         }
-                        if (!vnc_client_read_bytes(self, pixels, pix_bytes)) 
-                        { 
-                            free(pixels); 
-                            msg_ok = 0; 
-                            break; 
-                        }
-                        printf("read rect#%d done\n", i);
-                        const uint8_t* src = pixels;
-                        for (int y = 0; y < rh; ++y)
-                            for (int x = 0; x < rw; ++x) 
-                            {
-                                self->fb[(ry + y) * self->fbw + (rx + x)] = pixel_to_32bit(src, &self->fmt);
-                                src += self->bpp;
-                            }
-                        free(pixels);
-
                     }
                     else if (encoding == 1) 
                     {
@@ -600,7 +595,7 @@ void vnc_client_loop(vnc_client_t* self)
                         int src_y = ((int)copy_hdr[2] << 8) | copy_hdr[3];
                         if (!vnc_client_rect_ok(self, src_x, src_y, rw, rh)) 
                         {
-                            fprintf(stderr, "CopyRect source out of bounds\n");
+                            ESP_LOGE(TAG, "CopyRect source out of bounds");
                             msg_ok = 0;
                             break;
                         }
@@ -608,6 +603,14 @@ void vnc_client_loop(vnc_client_t* self)
                             for (int x = 0; x < rw; ++x)
                                 self->fb[(ry + y) * self->fbw + (rx + x)] =
                                 self->fb[(src_y + y) * self->fbw + (src_x + x)];
+                    }
+                    else if (encoding == 16)
+                    {
+                        if (!vnc_client_zrle_decode(self, rx, ry, rw, rh, self->bpp))
+                        {
+                            msg_ok = 0;
+                            break;
+                        }
                     }
                     else if (encoding == 7) 
                     {
@@ -619,7 +622,7 @@ void vnc_client_loop(vnc_client_t* self)
                     }
                     else 
                     {
-                        fprintf(stderr, "Unsupported encoding: %d\n", (int)encoding);
+                        ESP_LOGE(TAG, "Unsupported encoding: %d", (int)encoding);
                         msg_ok = 0;
                         break;
                     }
@@ -636,10 +639,10 @@ void vnc_client_loop(vnc_client_t* self)
         // signal the main thread (display_loop drains the event queue)
         if (self->scrn) 
         {
-            vnc_screen_publish_frame(self->scrn, self->fb, self->fb_pixels);
+            vnc_screen_publish_frame(self->scrn, self->fb, self->fb_pixels * self->bpp);
             //vnc_screen_push_event(self->scrn, EVT_UPDATE_FRAMEBUFFER);
         }
-        printf("update display\n");
+        ESP_LOGI(TAG, "update display");
         self->need_update = 1;
 
     }
@@ -652,7 +655,7 @@ void vnc_client_loop(vnc_client_t* self)
         if (!vnc_client_read_bytes(self, ncbuf, 2)) { self->break_loop = 1; return; }
         uint16_t ncolors = (uint16_t)(((uint16_t)ncbuf[0] << 8) | ncbuf[1]);
         if ((size_t)ncolors * 6 > (1 << 20)) {
-            fprintf(stderr, "Oversized colour map\n");
+            ESP_LOGE(TAG, "Oversized colour map");
             self->break_loop = 1;
             return;
         }
@@ -676,7 +679,7 @@ void vnc_client_loop(vnc_client_t* self)
         uint32_t clen = ((uint32_t)clbuf[0] << 24) | ((uint32_t)clbuf[1] << 16) |
             ((uint32_t)clbuf[2] << 8) | clbuf[3];
         if (clen > (1 << 20)) {
-            fprintf(stderr, "Oversized server cut-text: %u bytes\n", clen);
+            ESP_LOGE(TAG, "Oversized server cut-text: %u bytes", clen);
             self->break_loop = 1;
             return;
         }
@@ -687,7 +690,7 @@ void vnc_client_loop(vnc_client_t* self)
         }
     }
     else {
-        fprintf(stderr, "Unknown message type: %d\n", (int)msg_type);
+        ESP_LOGE(TAG, "Unknown message type: %d", (int)msg_type);
         self->break_loop = 1;
         return;
     }
@@ -696,7 +699,17 @@ void vnc_client_loop(vnc_client_t* self)
 void vnc_client_run(vnc_client_t* client)
 {
     // Send SetEncodings
-    uint8_t setenc[] = 
+    //  0   Raw Encoding
+    //  1   CopyRect Encoding
+    //  2   RRE Encoding
+    //  4   CoRRE Encoding
+    //  5   Hextile Encoding
+    //  6   zlib Encoding
+    //  7   Tight Encoding
+    //  8   zlibhex Encoding
+    //  16  ZRLE Encoding
+    //  21  JEPG Encoding
+    uint8_t setenc[] =
     {
         2,          // message type
         0,          // padding
@@ -728,7 +741,7 @@ void vnc_client_run(vnc_client_t* client)
     fb_req_full[8] = (client->fbh >> 8) & 0xFF;
     fb_req_full[9] = client->fbh & 0xFF;
 
-    printf("FramebufferUpdateRequest: 0\n");
+    ESP_LOGI(TAG, "FramebufferUpdateRequest: 0");
     if (!write_exact(client->fd, fb_req_full, 10)) 
     {
         vnc_log_append(client->scrn, "[Client] Failed FB request\n");
@@ -798,6 +811,12 @@ static void vnc_client_deinit(vnc_client_t* client)
         free(client->rbuf_ptr);
     }
 
+    if (client->temp_ptr)
+    {
+        vnc_log_append(client->scrn, "[Client] _free Temporary Buffer\n");
+        free(client->temp_ptr);
+    }
+
     if (client->fd != INVALID_SOCKET)
     {
         vnc_log_append(client->scrn, "[Client] Close Socket\n");
@@ -862,15 +881,80 @@ static int vnc_client_rect_ok(vnc_client_t* self, int rx, int ry, int rw, int rh
         (size_t)ry + (size_t)rh <= (size_t)self->fbh;
 }
 
+static int vnc_client_raw_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
+{
+    size_t pix_bytes = (size_t)rw * rh * (size_t)self->bpp;
+    uint8_t* pixels = self->rbuf_ptr;
+    if (!vnc_client_read_bytes(self, pixels, pix_bytes))
+        return 0;
+    ESP_LOGI(TAG, "receive done", rx, ry, rw, rh);
+
+    const uint8_t* src = pixels;
+    for (int y = 0; y < rh; ++y)
+    {
+        //int offset = y * self->fbw * bpp + rx * bpp;
+        int offset = y * self->fbw + rx;
+        for (int x = 0; x < rw; ++x)
+        {
+            self->fb[offset + x] = pixel_to_32bit(src, &self->fmt);
+            src += self->bpp;
+        }
+    }
+
+    return 1;
+}
+
+
+
+void decode_zrle_rectangle(
+    const uint8_t* decompressed_data,
+    uint32_t* framebuffer,
+    int rect_x, int rect_y,
+    int rect_w, int rect_h,
+    int screen_w
+);
+
+static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
+{
+    uint32_t* fb = self->fb;
+    int fbw = self->fbw;
+
+    //if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) {
+    //    ESP_LOGE(TAG, "zlib rect out of bounds");
+    //    return 0;
+    //}
+
+    uint32_t zlen;
+    if (!vnc_client_read_bytes(self, (uint8_t *)&zlen, 4))
+        return 0;
+    zlen = ntohl(zlen);
+    ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
+    if (!vnc_client_read_bytes(self, self->rbuf_ptr, zlen))
+    {
+        return 0;
+    }
+
+    if (!zlib_decompress(&self->zstream[0], self->rbuf_ptr, zlen, self->temp_ptr, self->temp_len))
+    {
+        return 0;
+    }
+
+    ESP_LOGI(TAG, "Receive zlib data");
+    decode_zrle_rectangle(self->temp_ptr, self->fb, rx, ry, rw, rh, self->fbw);
+    ESP_LOGI(TAG, "decode title done.");
+
+    return 1;
+}
+
 static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
 {
     uint32_t* fb = self->fb;
     int fbw = self->fbw;
 
-    if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) {
-        fprintf(stderr, "Tight rect out of bounds\n");
-        return 0;
-    }
+    //if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) {
+    //    ESP_LOGE(TAG, "Tight rect out of bounds");
+    //    return 0;
+    //}
 
     uint8_t ctrl;
     if (!vnc_client_read_u8(self, &ctrl)) return 0;
@@ -909,7 +993,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
             cinfo.out_color_space = JCS_EXT_BGRA;
             jpeg_start_decompress(&cinfo);
             if (cinfo.output_width > (JDIMENSION)rw || cinfo.output_height > (JDIMENSION)rh) {
-                fprintf(stderr, "Tight JPEG size mismatch\n");
+                ESP_LOGE(TAG, "Tight JPEG size mismatch");
                 jpeg_abort_decompress(&cinfo);
                 jpeg_destroy_decompress(&cinfo);
                 _free(jpeg_data);
@@ -990,7 +1074,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
         if (filter == 1)
             tight_filter_gradient(pixel_data, rw, rh, bpp);
         else if (filter != 0) {
-            fprintf(stderr, "Unsupported Tight filter: %d\n", (int)filter);
+            ESP_LOGE(TAG, "Unsupported Tight filter: %d", (int)filter);
             _free(raw_data);
             return 0;
         }
@@ -1006,7 +1090,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
     if (has_gradient) {
         uint8_t filter;
         if (!vnc_client_read_u8(self, &filter)) {
-            fprintf(stderr, "TIGHT_GRADIENT: read filter failed\n");
+            ESP_LOGE(TAG, "TIGHT_GRADIENT: read filter failed");
             return 0;
         }
         if (filter == 0x01) {
@@ -1014,7 +1098,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
             uint8_t* raw = (uint8_t*)_malloc(total ? total : 1);
             if (!raw) return 0;
             if (!vnc_client_read_bytes(self, raw, total)) {
-                fprintf(stderr, "TIGHT_GRADIENT: read pixels failed\n");
+                ESP_LOGE(TAG, "TIGHT_GRADIENT: read pixels failed");
                 _free(raw);
                 return 0;
             }
@@ -1025,7 +1109,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
             _free(raw);
         }
         else if (filter != 0x00) {
-            fprintf(stderr, "TIGHT_GRADIENT: unknown filter %d\n", (int)filter);
+            ESP_LOGE(TAG, "TIGHT_GRADIENT: unknown filter %d", (int)filter);
             return 0;
         }
         else {

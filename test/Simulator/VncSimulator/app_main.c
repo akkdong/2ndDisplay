@@ -15,6 +15,8 @@
 #include "vnc_client.h"
 
 
+static const char* TAG = "MAIN";
+
 
 /*
 vnc_app_t* vnc_app_get_instance(void);
@@ -345,7 +347,7 @@ bool vnc_app_send_event(vnc_app_t* app, app_event_t id, uint32_t data1, uint32_t
 {
     if (vnc_app.event_queue)
     {
-        printf("[APP] PostEvent(%d, %u, %u, %u)\n", id, data1, data2, data3);
+        ESP_LOGI(TAG, "PostEvent(%d, %u, %u, %u)", id, data1, data2, data3);
         AppEventMsg_t msg = {
             .id = id,
             .data1 = data1,
@@ -363,7 +365,7 @@ bool vnc_app_send_event(vnc_app_t* app, app_event_t id, uint32_t data1, uint32_t
 
 void vnc_app_connect_server(vnc_app_t* app, const char* addr, uint16_t port, const char* pass)
 {
-    printf("Connect To: %s#%u (%s)\n", addr, port, pass);
+    ESP_LOGI(TAG, "Connect To: %s#%u (%s)", addr, port, pass);
     // vnc_app_data_lock(app);
     {
         strncpy(app->server_addr, addr, sizeof(app->server_addr));
@@ -450,18 +452,18 @@ static void app_task(void* param)
     {
         if (xQueueReceive(app->event_queue, &msg, 0) == pdTRUE)
         {
-            vnc_log_printf(app->scrn, "[APP] RecvEvent(%d, %d, %d, %d)\n", msg.id, (int)msg.data1, (int)msg.data2, (int)msg.data3);
-            printf("[APP] RecvEvent(%d, %d, %d, %d)\n", msg.id, (int)msg.data1, (int)msg.data2, (int)msg.data3);
+            vnc_log_printf(app->scrn, "RecvEvent(%d, %d, %d, %d)\n", msg.id, (int)msg.data1, (int)msg.data2, (int)msg.data3);
+            ESP_LOGI(TAG, "RecvEvent(%d, %d, %d, %d)", msg.id, (int)msg.data1, (int)msg.data2, (int)msg.data3);
 
             switch (msg.id)
             {
             case NETWORK_CONNECTED:
                 FreeRTOS_inet_ntoa(msg.data1, buf);
-                vnc_log_printf(app->scrn, "[APP] IP = % s\n", buf);
+                vnc_log_printf(app->scrn, "IP = % s\n", buf);
                 vnc_app_set_state(app, APP_STATE_READY, APP_ACTION_NONE);
                 break;
             case NETWORK_DISCONNECTED:
-                vnc_log_printf(app->scrn, "[APP] Network Disconnected!\n");
+                vnc_log_printf(app->scrn, "Network Disconnected!\n");
                 vnc_app_set_state(app, APP_STATE_STANDBY, APP_ACTION_NONE);
                 break;
             case VNC_CONNECT_TO_SERVER:
@@ -469,36 +471,49 @@ static void app_task(void* param)
                 {
                     app->client = vnc_client_start(app);
                     if (!app->client)
-                        vnc_log_printf(app->scrn, "[APP] Failed to start client\n", buf);
+                        vnc_log_printf(app->scrn, "Failed to start client\n", buf);
                 }
                 else
                 {
-                    vnc_log_printf(app->scrn, "[APP] You can't connect to server\n", buf);
+                    vnc_log_printf(app->scrn, "You can't connect to server\n", buf);
                 }
                 break;
             case VNC_SERVER_CONNECTED:
                 if (msg.data1 == 0)
-                    vnc_log_printf(app->scrn, "[VNC] Server connected: %s\n", app->server_addr);
+                    vnc_log_printf(app->scrn, "Server connected: %s\n", app->server_addr);
                 break;
             case VNC_HANDSHAKE_FINISHED:
                 if (msg.data1 != -1)
                 {
-                    vnc_log_printf(app->scrn, "[VNC] Negotiated: %dx%d %dbps\n", (int)msg.data1, (int)msg.data2, (int)msg.data3 * 8);
-                    vnc_log_append(app->scrn, "[VNC] Start Play\n");
+                    vnc_log_printf(app->scrn, "Negotiated: %dx%d %dbps\n", (int)msg.data1, (int)msg.data2, (int)msg.data3 * 8);
+                    vnc_log_append(app->scrn, "Start Play\n");
+
+                    if (vnc_screen_start_play(app->scrn, (int)msg.data1, (int)msg.data2, (int)msg.data3))
+                    {
+                        vnc_app_set_state(app, APP_STATE_PLAY, APP_ACTION_NONE);
+                    }
+                    else
+                    {
+                        // disconnect vnc-server
+                        // ...
+                    }
                 }
                 else
                 {
-                    vnc_log_append(app->scrn, "[VNC] Failed negotiation\n");
+                    vnc_log_append(app->scrn, "Failed negotiation\n");
                 }
                 break;
             case VNC_SERVER_DISCONNECTED:
                 if (msg.data1 != -1)
                 {
-                    vnc_log_append(app->scrn, "[VNC] Stop Play\n");
+                    ESP_LOGI(TAG, "Stop Play");
+                    vnc_log_append(app->scrn, "Stop Play\n");
+                    vnc_screen_stop_play(app->scrn);
+                    vnc_app_set_state(app, APP_STATE_READY, APP_ACTION_NONE);
                 }
                 else
                 {
-                    vnc_log_append(app->scrn, "[VNC] Failed to connect to server\n");
+                    vnc_log_append(app->scrn, "Failed to connect to server\n");
                 }
                 break;
             }

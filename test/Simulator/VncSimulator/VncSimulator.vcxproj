@@ -107,6 +107,7 @@
     <ClCompile Include="vnc_logo.c" />
     <ClCompile Include="vnc_screen.c" />
     <ClCompile Include="wifi_setting_popup.c" />
+    <ClCompile Include="zrle_deocde.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app_main.h" />
