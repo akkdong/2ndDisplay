@@ -79,6 +79,11 @@ DWORD WINAPI prvWinPcapSendThread( void * pvParam );
 static NetworkInterface_t * pxMyInterface;
 
 /*
+ *
+ */
+static const char* pActiveInterfaceName = NULL;
+
+/*
  * Print out a numbered list of network interfaces that are available on the
  * host computer.
  */
@@ -361,7 +366,7 @@ static BaseType_t xWinPcap_GetPhyLinkStatus( NetworkInterface_t * pxInterface )
 /*-----------------------------------------------------------*/
 
 NetworkInterface_t * pxWinPcap_FillInterfaceDescriptor( BaseType_t xEMACIndex,
-                                                        NetworkInterface_t * pxInterface )
+                                                        NetworkInterface_t * pxInterface, const char* pActiveIfName )
 {
     static char pcName[ 17 ];
 
@@ -370,6 +375,7 @@ NetworkInterface_t * pxWinPcap_FillInterfaceDescriptor( BaseType_t xEMACIndex,
      * is declared static or global, and that it will remain to exist. */
 
     pxMyInterface = pxInterface;
+    pActiveInterfaceName = pActiveIfName;
 
     snprintf( pcName, sizeof( pcName ), "eth%ld", xEMACIndex );
 
@@ -457,18 +463,28 @@ static pcap_if_t * prvPrintAvailableNetworkInterfaces( void )
                 printf( "Interface %d - %s\n", lInterfaceNumber, prvRemoveSpaces( cBuffer, sizeof( cBuffer ), xInterface->name ) );
                 printf( "              (%s)\n", prvRemoveSpaces( cBuffer, sizeof( cBuffer ), xInterface->description ? xInterface->description : "No description" ) );
                 printf( "\n" );
-                #ifdef configNETWORK_INTERFACE_TYPE_TO_USE
+
+                if (pActiveInterfaceName != NULL)
                 {
-                    if( xInterface->description != NULL )
+                    if (strcasecmp(pActiveInterfaceName, xInterface->name) == 0)
                     {
-                        if( xDesiredAdapter( xInterface->description ) )
+                        printf("The description of adapter %d matches with '%s'\n\n", lInterfaceNumber, pActiveInterfaceName);
+                        xConfigNetworkInterfaceToUse = lInterfaceNumber;
+                    }
+                }
+                else
+                {
+#ifdef configNETWORK_INTERFACE_TYPE_TO_USE
+                    if (xInterface->description != NULL)
+                    {
+                        if (xDesiredAdapter(xInterface->description))
                         {
-                            printf( "The description of adapter %d matches with '%s'\n\n", lInterfaceNumber, configNETWORK_INTERFACE_TYPE_TO_USE );
+                            printf("The description of adapter %d matches with '%s'\n\n", lInterfaceNumber, configNETWORK_INTERFACE_TYPE_TO_USE);
                             xConfigNetworkInterfaceToUse = lInterfaceNumber;
                         }
                     }
+#endif /* ifdef configNETWORK_INTERFACE_TYPE_TO_USE */
                 }
-                #endif /* ifdef configNETWORK_INTERFACE_TYPE_TO_USE */
                 lInterfaceNumber++;
             }
         }

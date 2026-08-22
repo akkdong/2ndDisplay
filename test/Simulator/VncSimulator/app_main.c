@@ -30,6 +30,176 @@ void vnc_app_set_state(vnc_app_t* app, app_state_t state, app_action_t action);
 //
 //
 
+#if defined(_SIMULATOR)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <direct.h>
+
+#define VALID_IPNUM(x)      (((x) >= 0) && ((x) <= 255))
+#define VALID_HEXDIGIT(x)  ((((x) >= '0') && ((x) <= '9')) || (((x) >= 'a') && ((x) <= 'f')) || (((x) >= 'A') && ((x) <= 'F')))
+
+static uint8_t HEX2NUM(uint8_t c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return 0;
+}
+
+static bool parse_network_address(char* str, uint8_t* addr)
+{
+    char* t1 = strtok(str, ".");
+    char* t2 = strtok(NULL, ".");
+    char* t3 = strtok(NULL, ".");
+    char* t4 = strtok(NULL, ".");
+
+    if (t1 && t2 && t3 && t4)
+    {
+        int n1 = atoi(t1);
+        int n2 = atoi(t2);
+        int n3 = atoi(t3);
+        int n4 = atoi(t4);
+
+        if (VALID_IPNUM(n1) && VALID_IPNUM(n2) && VALID_IPNUM(n3) && VALID_IPNUM(n4))
+        {
+            addr[0] = n1;
+            addr[1] = n2;
+            addr[2] = n3;
+            addr[3] = n4;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool parse_mac_address(char* str, uint8_t* addr)
+{
+    uint8_t mac[6];
+    char* tok = strtok(str, "-");
+    int i = 0;
+
+    while (tok && i < sizeof(mac) / sizeof(mac[0]))
+    {
+        if (!VALID_HEXDIGIT(tok[0]) || !VALID_HEXDIGIT(tok[1]))
+            break;
+
+        uint8_t h = HEX2NUM(tok[0]);
+        uint8_t l = HEX2NUM(tok[1]);
+        mac[i] = (h << 4) | l;
+
+        tok = strtok(NULL, "-");
+        ++i;
+    }
+
+    if (tok == NULL && i == sizeof(mac) / sizeof(mac[0]))
+    {
+        memcpy(addr, mac, sizeof(mac));
+        return true;
+    }
+
+    return false;
+}
+
+
+static bool parse_server_address(char* str, vnc_app_t* app)
+{
+    char* addr = strtok(str, "#");
+    char* port = strtok(NULL, "#");
+
+    if (addr)
+    {
+        char temp[24];
+        uint8_t ip[4];
+        strncpy(temp, addr, sizeof(temp) - 1);
+        if (parse_network_address(temp, ip))
+        {
+            strncpy(app->server_addr, addr, sizeof(app->server_addr));
+            app->server_port = (port != NULL ? (uint16_t)atoi(port) : 5900);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+#endif
+
+
+
+static nvs_init(vnc_app_t* app)
+{
+#if defined(_SIMULATOR)
+    
+    FILE* fp = fopen("vnc_client.cfg", "r");
+    if (fp)
+    {
+        char sz[96];
+        while (!feof(fp))
+        {
+            memset(sz, 0, sizeof(sz));
+            fgets(sz, sizeof(sz), fp);
+
+            char* tok1 = strtok(sz, "=\n");
+            char* tok2 = strtok(NULL, "=\n");
+            if (!tok1 || !tok2)
+                continue;
+
+            if (_stricmp(tok1, "ipaddr") == 0)
+            {
+                parse_network_address(tok2, app->net_ip);
+            }
+            else if (_stricmp(tok1, "gateway") == 0)
+            {
+                parse_network_address(tok2, app->net_gw);
+            }
+            else if (_stricmp(tok1, "netmask") == 0)
+            {
+                parse_network_address(tok2, app->net_mask);
+            }
+            else if (_stricmp(tok1, "dns") == 0)
+            {
+                parse_network_address(tok2, app->net_dns);
+            }
+            else if (_stricmp(tok1, "macaddr") == 0)
+            {
+                parse_mac_address(tok2, app->net_mac);
+            }
+            else if (_stricmp(tok1, "vnc_server") == 0)
+            {
+                parse_server_address(tok2, app);
+            }
+            else if (_stricmp(tok1, "vnc_password") == 0)
+            {
+                strncpy(app->server_pass, tok2, sizeof(app->server_pass) - 1);
+            }
+            else if (_stricmp(tok1, "net_if") == 0)
+            {
+                strncpy(app->net_if_name, tok2, sizeof(app->net_if_name) - 1);
+            }
+        }
+        fclose(fp);
+    }
+#else
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+#endif
+}
+
+//
+//
+//
+
 void net_init(vnc_app_t* app)
 {
 #if !defined(_SIMULATOR)
@@ -75,10 +245,11 @@ static void task_netif_up(void* param)
 
     //
     extern NetworkInterface_t* pxWinPcap_FillInterfaceDescriptor(BaseType_t xEMACIndex,
-        NetworkInterface_t * pxInterface);
+        NetworkInterface_t * pxInterface, const char* pActiveIfName);
 
     //
-    pxWinPcap_FillInterfaceDescriptor(0, &(app->net_if[0]));
+    const char* ifName = app->net_if_name[0] ? (const char*)&app->net_if_name[0] : NULL;
+    pxWinPcap_FillInterfaceDescriptor(0, &(app->net_if[0]), ifName);
 
     //
     FreeRTOS_FillEndPoint(&(app->net_if[0]), &(app->net_ep[0]), app->net_ip, app->net_mask, app->net_gw, app->net_dns, app->net_mac);
@@ -129,19 +300,20 @@ vnc_app_t vnc_app =
     .client = NULL,
 
 #if defined(_SIMULATOR)
-    .net_ip = { 172, 20, 90, 126 },
+    .net_ip = { 192, 168, 219, 100 },
     .net_mask = { 255, 255, 255, 0 },
-    .net_gw = { 172, 20, 90, 1 },
-    .net_dns = { 168, 126, 63, 1 },
+    .net_gw = { 192, 168, 219, 1 },
+    .net_dns = { 8, 8, 8, 8 },
     .net_mac = { 0x14, 0x11, 0x11, 0x11, 0x11, 0x41 },
+    .net_if_name = { 0 },
 #else
     .wifi_name = { 0 },
     .wifi_pass = { 0 },
 #endif
 
-    .server_addr = "172.20.90.57", // { 0 },
-    .server_port = 5901,
-    .server_pass = "password", // { 0 },
+    .server_addr = "", // { 0 },
+    .server_port = 590,
+    .server_pass = "", // { 0 },
 
     .state = APP_STATE_INIT,
     .action = APP_ACTION_NONE,
@@ -348,6 +520,10 @@ static void app_task(void* param)
 
 void vnc_app_init()
 {
+    // Initialize NVS
+    nvs_init(&vnc_app);
+
+
     //
     vnc_app.disp = vnc_display_start();
     vnc_app.scrn = vnc_screen_init(&vnc_app);

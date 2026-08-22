@@ -89,6 +89,7 @@ struct vnc_app_s
     uint8_t net_gw[4];
     uint8_t net_dns[4];
     uint8_t net_mac[6];
+    char net_if_name[96];
 
     NetworkInterface_t net_if[1];
     NetworkEndPoint_t net_ep[4];
