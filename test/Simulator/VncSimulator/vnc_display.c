@@ -5,7 +5,19 @@
 #include "vnc_display.h"
 #include "bsp_display.h"
 #include "SDL2/SDL.h"
-
+#if defined(_SIMULATOR)
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "event_groups.h"
+#else
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_system.h"
+#include "esp_timer.h"
+#include "bsp_display.h"
+#endif
 
 #define ENABLE_SDL_FEATURE	1
 

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <stdio.h>
+/*
 #if defined(_SIMULATOR)
 #include "FreeRTOS.h"
 #include "task.h"
@@ -17,11 +18,18 @@
 #include "esp_timer.h"
 #include "bsp_display.h"
 #endif
+*/
 #include "esp_log.h"
 
 #include "lvgl/lvgl.h"
 #include "extern.h"
 #include "vnc_types.h"
+
+#if defined(_SIMULATOR)
+struct QueueDefinition;
+typedef struct QueueDefinition* QueueHandle_t;
+typedef QueueHandle_t SemaphoreHandle_t;
+#endif
 
 
 BEGIN_EXTERN_C();

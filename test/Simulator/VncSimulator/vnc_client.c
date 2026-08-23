@@ -10,6 +10,30 @@
 
 static const char* TAG = "CLIENT";
 
+/*
+// USE Winsock Wrapper
+#define USE_WINSOCK_WRAPPER 1
+#if USE_WINSOCK_WRAPPER
+
+#include "WinsockWorker.h"
+
+#undef SOCKET
+#undef socket
+#undef connect
+#undef closesocket
+#undef send
+#undef recv
+
+#define SOCKET          WinsockWrapperSocket_t *
+#define socket          Winsock_socket
+#define connect         Winsock_connect
+#define closesocket     Winsock_closesocket
+#define send            Winsock_send
+#define recv            Winsock_recv
+
+#endif
+*/
+
 
 //
 // local static functions
@@ -209,20 +233,22 @@ vnc_client_t* vnc_client_start(vnc_app_t* app)
 
 
 
-
-
-
-
 //
 //
 //
 
 bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, int timeout)
 {
+#if USE_WINSOCK_WRAPPER
+    client->fd = Winsock_connect_server(host, port, timeout);
+    if (client->fd == INVALID_SOCKET)
+        return false;
+#else
     client->fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (client->fd < 0) 
+    if (client->fd < 0)
         return false;
 
+    /*
     BaseType_t size = 60 * 1024;
     BaseType_t ret = FreeRTOS_setsockopt(client->fd, 0, FREERTOS_SO_RCVBUF, &size, 0);
 
@@ -246,8 +272,14 @@ bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, i
             &xSendTimeout,
             sizeof(xSendTimeout));
     }
+    */
 
-    sockaddr addr;   
+#if USE_VIRTUALSOCKET
+    struct VirtualSocket_sockaddr addr;
+    addr.addr = inet_addr(host);
+    addr.port = htons(port);
+#else
+    struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -256,17 +288,7 @@ bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, i
 #else
     addr.sin_addr.s_addr = inet_addr(host);
 #endif
-
-    // Non-blocking connect + poll() so an unreachable host fails quickly
-    // instead of blocking for the kernel's default TCP timeout (~2 min).
-    /*
-    if (set_nonblock(client->fd, true) < 0)
-    {
-        close(client->fd);
-        client->fd = -1;
-        return false;
-    }
-    */
+#endif
 
     if (connect(client->fd, &addr, sizeof(addr)) < 0 && errno != EINPROGRESS && errno != EINTR) 
     {
@@ -274,25 +296,7 @@ bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, i
         client->fd = INVALID_SOCKET;
         return false;
     }
-
-    /*
-    struct pollfd pfd = { client->fd, POLLOUT, 0 };
-    int ret = poll(&pfd, 1, timeout);
-    if (ret <= 0)    // 0 = timeout, <0 = poll error
-    {
-        close(client->fd);
-        client->fd = -1;
-        return false;
-    }
-
-    int err = 0;
-    socklen_t errlen = sizeof(err);
-    if (getsockopt(client->fd, SOL_SOCKET, SO_ERROR, &err, &errlen) < 0 || err != 0) {
-        close(client->fd);
-        client->fd = -1;
-        return false;
-    }
-    */
+#endif
 
     return true;
 }
@@ -315,7 +319,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     if (!read_exact(client->fd, &nsec, 1) || nsec == 0)
         return false;
 
-    uint8_t* types = _malloc(nsec);
+    uint8_t* types = malloc(nsec);
     if (!types)
         return false;
     if (!read_exact(client->fd, types, nsec))
@@ -336,7 +340,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
         if (types[i] == 2) 
             have_vncauth = true;
     }
-    _free(types);
+    free(types);
 
     if (have_vncauth && (pass && pass[0]))
     {
@@ -419,17 +423,17 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
             return false;
         }
 
-        char* name = _malloc(nlen + 1);
+        char* name = malloc(nlen + 1);
         if (!name)
             return false;
         if (!read_exact(client->fd, name, nlen))
         {
-            _free(name);
+            free(name);
             return false;
         }
 
         vnc_log_printf(client->scrn, "[Client] Desktop: %s\n", name);
-        _free(name);
+        free(name);
     }
 
 #if SUPPORT_SETPIXELFORMAT
@@ -639,7 +643,7 @@ void vnc_client_loop(vnc_client_t* self)
         // signal the main thread (display_loop drains the event queue)
         if (self->scrn) 
         {
-            vnc_screen_publish_frame(self->scrn, self->fb, self->fb_pixels * self->bpp);
+            vnc_screen_publish_frame(self->scrn, (uint8_t *)self->fb, self->fb_pixels * self->bpp);
             //vnc_screen_push_event(self->scrn, EVT_UPDATE_FRAMEBUFFER);
         }
         ESP_LOGI(TAG, "update display");
@@ -659,10 +663,10 @@ void vnc_client_loop(vnc_client_t* self)
             self->break_loop = 1;
             return;
         }
-        uint8_t* cmap = (uint8_t*)_malloc((size_t)ncolors * 6);
+        uint8_t* cmap = (uint8_t*)malloc((size_t)ncolors * 6);
         if (cmap) {
-            if (!vnc_client_read_bytes(self, cmap, (size_t)ncolors * 6)) { _free(cmap); self->break_loop = 1; return; }
-            _free(cmap);
+            if (!vnc_client_read_bytes(self, cmap, (size_t)ncolors * 6)) { free(cmap); self->break_loop = 1; return; }
+            free(cmap);
         }
 
     }
@@ -683,10 +687,10 @@ void vnc_client_loop(vnc_client_t* self)
             self->break_loop = 1;
             return;
         }
-        uint8_t* ctext = (uint8_t*)_malloc(clen ? clen : 1);
+        uint8_t* ctext = (uint8_t*)malloc(clen ? clen : 1);
         if (ctext) {
-            if (!vnc_client_read_bytes(self, ctext, clen)) { _free(ctext); self->break_loop = 1; return; }
-            _free(ctext);
+            if (!vnc_client_read_bytes(self, ctext, clen)) { free(ctext); self->break_loop = 1; return; }
+            free(ctext);
         }
     }
     else {
@@ -801,19 +805,19 @@ static void vnc_client_deinit(vnc_client_t* client)
 
     if (client->fb)
     {
-        vnc_log_append(client->scrn, "[Client] _free Frame Buffer\n");
+        vnc_log_append(client->scrn, "[Client] free Frame Buffer\n");
         free(client->fb);
     }
 
     if (client->rbuf_ptr)
     {
-        vnc_log_append(client->scrn, "[Client] _free Receive Buffer\n");
+        vnc_log_append(client->scrn, "[Client] free Receive Buffer\n");
         free(client->rbuf_ptr);
     }
 
     if (client->temp_ptr)
     {
-        vnc_log_append(client->scrn, "[Client] _free Temporary Buffer\n");
+        vnc_log_append(client->scrn, "[Client] free Temporary Buffer\n");
         free(client->temp_ptr);
     }
 
@@ -887,13 +891,13 @@ static int vnc_client_raw_decode(vnc_client_t* self, int rx, int ry, int rw, int
     uint8_t* pixels = self->rbuf_ptr;
     if (!vnc_client_read_bytes(self, pixels, pix_bytes))
         return 0;
-    ESP_LOGI(TAG, "receive done", rx, ry, rw, rh);
+    ESP_LOGI(TAG, "receive done");
 
     const uint8_t* src = pixels;
     for (int y = 0; y < rh; ++y)
     {
         //int offset = y * self->fbw * bpp + rx * bpp;
-        int offset = y * self->fbw + rx;
+        int offset = (ry + y) * self->fbw + rx;
         for (int x = 0; x < rw; ++x)
         {
             self->fb[offset + x] = pixel_to_32bit(src, &self->fmt);
@@ -979,9 +983,9 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
     if (comp_type == 0x09) {
         size_t jpeg_len;
         if (!vnc_client_read_clen(self, &jpeg_len)) return 0;
-        uint8_t* jpeg_data = (uint8_t*)_malloc(jpeg_len ? jpeg_len : 1);
+        uint8_t* jpeg_data = (uint8_t*)malloc(jpeg_len ? jpeg_len : 1);
         if (!jpeg_data) return 0;
-        if (!vnc_client_read_bytes(self, jpeg_data, jpeg_len)) { _free(jpeg_data); return 0; }
+        if (!vnc_client_read_bytes(self, jpeg_data, jpeg_len)) { free(jpeg_data); return 0; }
 
         struct jpeg_decompress_struct cinfo;
         struct jpeg_error_mgr jerr;
@@ -996,7 +1000,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
                 ESP_LOGE(TAG, "Tight JPEG size mismatch");
                 jpeg_abort_decompress(&cinfo);
                 jpeg_destroy_decompress(&cinfo);
-                _free(jpeg_data);
+                free(jpeg_data);
                 return 0;
             }
             for (int y = 0; y < rh && y < (int)cinfo.output_height; ++y) {
@@ -1008,7 +1012,7 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
             jpeg_finish_decompress(&cinfo);
         }
         jpeg_destroy_decompress(&cinfo);
-        _free(jpeg_data);
+        free(jpeg_data);
         return 1;
     }
 
@@ -1022,10 +1026,10 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
         uint8_t psize;
         if (!vnc_client_read_u8(self, &psize)) return 0;
         palette_size = psize + 1;
-        palette = (uint32_t*)_malloc((size_t)palette_size * sizeof(uint32_t));
+        palette = (uint32_t*)malloc((size_t)palette_size * sizeof(uint32_t));
         if (!palette) return 0;
         uint8_t pal_buf[4 * 256];
-        if (!vnc_client_read_bytes(self, pal_buf, (size_t)palette_size * bpp)) { _free(palette); return 0; }
+        if (!vnc_client_read_bytes(self, pal_buf, (size_t)palette_size * bpp)) { free(palette); return 0; }
         for (int i = 0; i < palette_size; ++i)
             palette[i] = pixel_to_32bit(pal_buf + i * bpp, &self->fmt);
     }
@@ -1035,26 +1039,26 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
 
     if (is_compressed) {
         size_t zlen;
-        if (!vnc_client_read_clen(self, &zlen)) { _free(palette); return 0; }
-        uint8_t* compressed = (uint8_t*)_malloc(zlen ? zlen : 1);
-        if (!compressed) { _free(palette); return 0; }
-        if (!vnc_client_read_bytes(self, compressed, zlen)) { _free(compressed); _free(palette); return 0; }
+        if (!vnc_client_read_clen(self, &zlen)) { free(palette); return 0; }
+        uint8_t* compressed = (uint8_t*)malloc(zlen ? zlen : 1);
+        if (!compressed) { free(palette); return 0; }
+        if (!vnc_client_read_bytes(self, compressed, zlen)) { free(compressed); free(palette); return 0; }
 
         size_t uncomp_size = has_palette ? pixel_count : (pixel_count * bpp + 1);
-        raw_data = (uint8_t*)_malloc(uncomp_size ? uncomp_size : 1);
-        if (!raw_data) { _free(compressed); _free(palette); return 0; }
+        raw_data = (uint8_t*)malloc(uncomp_size ? uncomp_size : 1);
+        if (!raw_data) { free(compressed); free(palette); return 0; }
         if (!zlib_decompress(&self->zstream[stream_idx], compressed, zlen, raw_data, uncomp_size)) {
-            _free(compressed); _free(raw_data); _free(palette);
+            free(compressed); free(raw_data); free(palette);
             return 0;
         }
-        _free(compressed);
+        free(compressed);
     }
 
     if (has_palette) {
         if (!is_compressed) {
-            raw_data = (uint8_t*)_malloc(pixel_count ? pixel_count : 1);
-            if (!raw_data) { _free(palette); return 0; }
-            if (!vnc_client_read_bytes(self, raw_data, pixel_count)) { _free(raw_data); _free(palette); return 0; }
+            raw_data = (uint8_t*)malloc(pixel_count ? pixel_count : 1);
+            if (!raw_data) { free(palette); return 0; }
+            if (!vnc_client_read_bytes(self, raw_data, pixel_count)) { free(raw_data); free(palette); return 0; }
         }
         for (size_t i = 0; i < pixel_count; ++i) {
             uint8_t idx = raw_data[i];
@@ -1063,8 +1067,8 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
             int y = ry + (int)(i / (size_t)rw);
             fb[y * fbw + x] = color;
         }
-        _free(raw_data);
-        _free(palette);
+        free(raw_data);
+        free(palette);
         return 1;
     }
 
@@ -1075,14 +1079,14 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
             tight_filter_gradient(pixel_data, rw, rh, bpp);
         else if (filter != 0) {
             ESP_LOGE(TAG, "Unsupported Tight filter: %d", (int)filter);
-            _free(raw_data);
+            free(raw_data);
             return 0;
         }
         for (int y = 0; y < rh; ++y)
             for (int x = 0; x < rw; ++x) {
                 fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(pixel_data + (y * rw + x) * bpp, &self->fmt);
             }
-        _free(raw_data);
+        free(raw_data);
         return 1;
     }
 
@@ -1095,18 +1099,18 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
         }
         if (filter == 0x01) {
             size_t total = (size_t)rw * rh * bpp;
-            uint8_t* raw = (uint8_t*)_malloc(total ? total : 1);
+            uint8_t* raw = (uint8_t*)malloc(total ? total : 1);
             if (!raw) return 0;
             if (!vnc_client_read_bytes(self, raw, total)) {
                 ESP_LOGE(TAG, "TIGHT_GRADIENT: read pixels failed");
-                _free(raw);
+                free(raw);
                 return 0;
             }
             tight_filter_gradient(raw, rw, rh, bpp);
             for (int y = 0; y < rh; ++y)
                 for (int x = 0; x < rw; ++x)
                     fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(raw + (y * rw + x) * bpp, &self->fmt);
-            _free(raw);
+            free(raw);
         }
         else if (filter != 0x00) {
             ESP_LOGE(TAG, "TIGHT_GRADIENT: unknown filter %d", (int)filter);
@@ -1114,27 +1118,27 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
         }
         else {
             size_t total = (size_t)rw * rh * bpp;
-            uint8_t* raw = (uint8_t*)_malloc(total ? total : 1);
+            uint8_t* raw = (uint8_t*)malloc(total ? total : 1);
             if (!raw) return 0;
             if (!vnc_client_read_bytes(self, raw, total)) return 0;
             for (int y = 0; y < rh; ++y)
                 for (int x = 0; x < rw; ++x)
                     fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(raw + (y * rw + x) * bpp, &self->fmt);
-            _free(raw);
+            free(raw);
         }
     }
     else {
-        uint8_t* row_buf = (uint8_t*)_malloc((size_t)rw * bpp);
+        uint8_t* row_buf = (uint8_t*)malloc((size_t)rw * bpp);
         if (!row_buf) return 0;
         for (int y = 0; y < rh; ++y) {
-            if (!vnc_client_read_bytes(self, row_buf, (size_t)rw * bpp)) { _free(row_buf); return 0; }
+            if (!vnc_client_read_bytes(self, row_buf, (size_t)rw * bpp)) { free(row_buf); return 0; }
             const uint8_t* src = row_buf;
             for (int x = 0; x < rw; ++x) {
                 fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(src, &self->fmt);
                 src += bpp;
             }
         }
-        _free(row_buf);
+        free(row_buf);
     }
 
     return 1;

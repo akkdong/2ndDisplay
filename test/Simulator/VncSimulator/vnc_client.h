@@ -9,7 +9,30 @@
 #include "extern.h"
 #include "vnc_types.h"
 
-#if defined(_SIMULATOR)
+#define USE_VIRTUALSOCKET 1
+
+#if USE_VIRTUALSOCKET
+
+#include "VirtualSocket.h"
+
+typedef VirtualSocket_t* SOCKET;
+
+#define socket          VirtualSocket_socket
+#define connect         VirtualSocket_connect
+#define closesocket     VirtualSocket_closesocket
+#define send            VirtualSocket_send
+#define recv            VirtualSocket_recv
+
+#define inet_addr       VirtualSocket_inet_addr
+#define htonl           VirtualSocket_htonl
+#define htons           VirtualSocket_htons
+#define ntohl           VirtualSocket_ntohl
+#define ntohs           VirtualSocket_ntohs
+
+#define INVALID_SOCKET  ((SOCKET)~0U)
+
+
+#elif defined(_SIMULATOR)
 #include "FreeRTOS_IP.h"
 #include "FreeRTOS_Sockets.h"
 
@@ -60,8 +83,8 @@
 //
 //
 
-#define _malloc          pvPortMalloc
-#define _free            vPortFree
+//#define _malloc          pvPortMalloc
+//#define _free            vPortFree
 
 #else
 
@@ -174,6 +197,7 @@ bool vnc_client_connect(vnc_client_t* client, const char* addr, uint16_t port, i
 bool vnc_client_handshake(vnc_client_t* client, const char* pass);
 void vnc_client_loop(vnc_client_t* client);
 void vnc_client_run(vnc_client_t* client);
+
 
 bool vnc_client_isOk(vnc_client_t* client);
 /*

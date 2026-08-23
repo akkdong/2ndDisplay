@@ -60,6 +60,12 @@
     <ClCompile Include="zrle_deocde.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="WinsockWorker.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VirtualSocket.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_state.h">
@@ -99,6 +105,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tight_decoder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WinsockWorker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VirtualSocket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
