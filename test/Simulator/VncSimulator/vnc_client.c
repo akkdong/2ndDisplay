@@ -178,7 +178,7 @@ static vnc_client_task(void* param)
 
         if (vnc_client_handshake(client, app->server_pass))
         {
-            vnc_app_send_event(app, VNC_HANDSHAKE_FINISHED, client->fbw, client->fbh, client->bpp);
+            vnc_app_send_event(app, VNC_HANDSHAKE_FINISHED, client->fbw, client->fbh, sizeof(uint32_t));
             vnc_client_run(client);
             vnc_app_send_event(app, VNC_SERVER_DISCONNECTED, 0, 0, 0);
         }
@@ -448,7 +448,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     if (client->bpp > 4) 
         client->bpp = 4;
 
-    client->fb = heap_caps_malloc(fb_pixels * client->bpp, MALLOC_CAP_SPIRAM);
+    client->fb = heap_caps_malloc(fb_pixels * sizeof(uint32_t), MALLOC_CAP_SPIRAM);
     if (!client->fb)
         return false;
     client->fb_pixels = fb_pixels;
@@ -456,12 +456,12 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     client->rbuf_ptr = heap_caps_malloc(fb_pixels * client->bpp, MALLOC_CAP_SPIRAM);
     if (!client->rbuf_ptr)
         return false;
-    client->rbuf_len = fb_pixels;
+    client->rbuf_len = (uint32_t)(fb_pixels * client->bpp);
 
     client->temp_ptr = heap_caps_malloc(fb_pixels * client->bpp, MALLOC_CAP_SPIRAM);
     if (!client->temp_ptr)
         return false;
-    client->temp_len = fb_pixels;
+    client->temp_len = (uint32_t)(fb_pixels * client->bpp);
 
 
     // Resize the LVGL display/window to the VNC framebuffer size and
@@ -614,7 +614,7 @@ void vnc_client_loop(vnc_client_t* self)
         // signal the main thread (display_loop drains the event queue)
         if (self->scrn) 
         {
-            vnc_screen_publish_frame(self->scrn, (uint8_t *)self->fb, self->fb_pixels * self->bpp);
+            vnc_screen_publish_frame(self->scrn, (uint8_t *)self->fb, (uint32_t)(self->fb_pixels * sizeof(uint32_t)));
             //vnc_screen_push_event(self->scrn, EVT_UPDATE_FRAMEBUFFER);
         }
         ESP_LOGI(TAG, "update display");
@@ -905,51 +905,43 @@ static int vnc_client_raw_decode(vnc_client_t* self, int rx, int ry, int rw, int
 
 
 
-void decode_zrle_rectangle(
-    const uint8_t* decompressed_data,
-    uint32_t* framebuffer,
-    int rect_x, int rect_y,
-    int rect_w, int rect_h,
-    int screen_w
-);
-
-void parse_zrle_buffer(const uint8_t* decompressed_buf, size_t buf_size,
+int parse_zrle_buffer(const uint8_t* decompressed_buf, size_t buf_size,
     int rect_x, int rect_y, int rect_width, int rect_height,
-    uint32_t* screen_buffer, int screen_width
+    uint32_t* screen_buffer, int screen_width, const PixelFormat* fmt
 );
 
 static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
 {
-    uint32_t* fb = self->fb;
-    int fbw = self->fbw;
-
-    //if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) {
-    //    ESP_LOGE(TAG, "zlib rect out of bounds");
-    //    return 0;
-    //}
+    (void)bpp;
 
     uint32_t zlen;
-    if (!vnc_client_read_bytes(self, (uint8_t *)&zlen, 4))
+    if (!vnc_client_read_bytes(self, (uint8_t*)&zlen, 4))
         return 0;
     zlen = ntohl(zlen);
-    ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
-    if (!vnc_client_read_bytes(self, self->rbuf_ptr, zlen))
+
+    if ((size_t)zlen > (size_t)self->rbuf_len)
     {
+        ESP_LOGE(TAG, "ZRLE rect data too large: %u", zlen);
         return 0;
     }
+
+    ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
+    if (!vnc_client_read_bytes(self, self->rbuf_ptr, zlen))
+        return 0;
 
     size_t uncomp_size = 0;
     if (!zlib_decompress2(&self->zstream[0], self->rbuf_ptr, zlen, self->temp_ptr, self->temp_len, &uncomp_size))
     {
+        ESP_LOGE(TAG, "ZRLE inflate failed");
         return 0;
     }
 
-    ESP_LOGI(TAG, "Receive zlib data");
-#if 1
-    parse_zrle_buffer(self->temp_ptr, uncomp_size, rx, ry, rw, rh, self->fb, self->fbw);
-#else
-    decode_zrle_rectangle(self->temp_ptr, self->fb, rx, ry, rw, rh, self->fbw);
-#endif
+    if (!parse_zrle_buffer(self->temp_ptr, uncomp_size, rx, ry, rw, rh, self->fb, self->fbw, &self->fmt))
+    {
+        ESP_LOGE(TAG, "ZRLE tile decode failed");
+        return 0;
+    }
+
     ESP_LOGI(TAG, "decode title done.");
 
     return 1;
