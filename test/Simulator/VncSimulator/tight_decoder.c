@@ -36,24 +36,38 @@ static inline void write_pixel(uint8_t* buf, uint32_t pixel, int bpp)
 //
 //
 
-uint32_t pixel_to_32bit(const uint8_t* p, const PixelFormat* fmt)
+uint32_t pixel_to_32bit_b(const uint8_t* p, const PixelFormat* fmt, int bytes)
 {
-    uint32_t raw = read_pixel(p, fmt->bpp / 8);
-    if (!fmt->true_color) 
+    uint32_t raw;
+    if (bytes == 1)
+        raw = p[0];
+    else if (bytes == 2)
+        raw = ((uint32_t)(p[1]) << 8) | p[0];
+    else if (bytes == 3)
+        raw = ((uint32_t)(p[2]) << 16) | ((uint32_t)(p[1]) << 8) | p[0];
+    else
+        raw = ((uint32_t)(p[3]) << 24) | ((uint32_t)(p[2]) << 16) | ((uint32_t)(p[1]) << 8) | p[0];
+
+    if (!fmt->true_color)
         return raw;
 
     uint8_t r = (raw >> fmt->red_shift) & fmt->red_max;
     uint8_t g = (raw >> fmt->green_shift) & fmt->green_max;
     uint8_t b = (raw >> fmt->blue_shift) & fmt->blue_max;
 
-    if (fmt->red_max != 0xFF) 
+    if (fmt->red_max != 0xFF)
         r = (r * 255 + fmt->red_max / 2) / fmt->red_max;
-    if (fmt->green_max != 0xFF) 
+    if (fmt->green_max != 0xFF)
         g = (g * 255 + fmt->green_max / 2) / fmt->green_max;
-    if (fmt->blue_max != 0xFF) 
+    if (fmt->blue_max != 0xFF)
         b = (b * 255 + fmt->blue_max / 2) / fmt->blue_max;
 
     return 0xFF000000 | ((uint32_t)(r) << 16) | ((uint32_t)(g) << 8) | b;
+}
+
+uint32_t pixel_to_32bit(const uint8_t* p, const PixelFormat* fmt)
+{
+    return pixel_to_32bit_b(p, fmt, fmt->bpp / 8);
 }
 
 // Apply Tight Gradient filter (type 1) to a full buffer of pixel data
@@ -79,6 +93,11 @@ void tight_filter_gradient(uint8_t* data, int w, int h, int bpp)
                     pred = row[(x - 1) * bpp + c];
                 else
                     pred = row[(x - 1) * bpp + c] + prev[x * bpp + c] - prev[(x - 1) * bpp + c];
+
+                if (pred < 0)
+                    pred = 0;
+                if (pred > 255)
+                    pred = 255;
 
                 *p = (uint8_t)(*p + pred);
             }
@@ -132,4 +151,39 @@ bool zlib_decompress2(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* ou
         *decompressed_size = outlen - zs->avail_out;
 
     return true;
+}
+
+bool zlib_decompress_exact(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out, size_t outlen)
+{
+    if (inlen > (size_t)UINT_MAX || outlen > (size_t)UINT_MAX)
+        return false;
+
+    zs->next_in = (Bytef*)in;
+    zs->avail_in = (uInt)inlen;
+    zs->next_out = out;
+    zs->avail_out = (uInt)outlen;
+
+    while (zs->avail_out > 0)
+    {
+        uInt prev_avail_in = zs->avail_in;
+        uInt prev_avail_out = zs->avail_out;
+        int ret = inflate(zs, Z_NO_FLUSH);
+
+        if (ret == Z_STREAM_END)
+            break;
+
+        if (ret != Z_OK)
+            return false;
+
+        if (zs->avail_in == prev_avail_in && zs->avail_out == prev_avail_out)
+            return false;
+    }
+
+    /*
+     * Output must be filled completely. Unconsumed input is allowed: the
+     * encoder terminates each rect's data with a Z_SYNC_FLUSH marker which
+     * inflate may leave unread when the output buffer filled first. Those
+     * bytes belong to this rect's compact-length budget and are discarded.
+     */
+    return zs->avail_out == 0;
 }

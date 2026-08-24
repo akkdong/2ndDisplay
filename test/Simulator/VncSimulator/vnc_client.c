@@ -487,10 +487,10 @@ void vnc_client_loop(vnc_client_t* self)
         fb_req_inc[7] = self->fbw & 0xFF;
         fb_req_inc[8] = (self->fbh >> 8) & 0xFF;
         fb_req_inc[9] = self->fbh & 0xFF;
-        ESP_LOGI(TAG, "FramebufferUpdateRequest: 1");
+        //ESP_LOGI(TAG, "FramebufferUpdateRequest: 1");
         if (!write_exact(self->fd, fb_req_inc, 10))
         {
-            ESP_LOGI(TAG, "  --> failed");
+            //ESP_LOGI(TAG, "  --> failed");
             self->break_loop = 1;
         }
         self->need_update = 0;
@@ -525,7 +525,7 @@ void vnc_client_loop(vnc_client_t* self)
             if (msg_ok) 
             {
                 nrects = (uint16_t)(((uint16_t)nrbuf[0] << 8) | nrbuf[1]);
-                ESP_LOGI(TAG, "nrets = %d", nrects);
+                //ESP_LOGI(TAG, "nrets = %d", nrects);
                 for (int i = 0; i < nrects && msg_ok; ++i) 
                 {
                     uint8_t rect_hdr[12];
@@ -541,10 +541,10 @@ void vnc_client_loop(vnc_client_t* self)
                     uint16_t rh = (uint16_t)(((uint16_t)rect_hdr[6] << 8) | rect_hdr[7]);
                     int32_t encoding = ((int32_t)rect_hdr[8] << 24) | ((int32_t)rect_hdr[9] << 16) |
                         ((int32_t)rect_hdr[10] << 8) | rect_hdr[11];
-                    ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
+                    //ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
                     if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) 
                     {
-                        ESP_LOGI(TAG, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)",
+                        ESP_LOGE(TAG, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)",
                             rx, ry, rw, rh, self->fbw, self->fbh);
                         msg_ok = 0;
                         break;
@@ -579,14 +579,6 @@ void vnc_client_loop(vnc_client_t* self)
                                 self->fb[(ry + y) * self->fbw + (rx + x)] =
                                 self->fb[(src_y + y) * self->fbw + (src_x + x)];
                     }
-                    else if (encoding == 16)
-                    {
-                        if (!vnc_client_zrle_decode(self, rx, ry, rw, rh, self->bpp))
-                        {
-                            msg_ok = 0;
-                            break;
-                        }
-                    }
                     else if (encoding == 7) 
                     {
                         if (!vnc_client_tight_decode(self, rx, ry, rw, rh, self->bpp)) 
@@ -595,7 +587,15 @@ void vnc_client_loop(vnc_client_t* self)
                             break;
                         }
                     }
-                    else 
+                    else if (encoding == 16)
+                    {
+                        if (!vnc_client_zrle_decode(self, rx, ry, rw, rh, self->bpp))
+                        {
+                            msg_ok = 0;
+                            break;
+                        }
+                    }
+                    else
                     {
                         ESP_LOGE(TAG, "Unsupported encoding: %d", (int)encoding);
                         msg_ok = 0;
@@ -617,7 +617,7 @@ void vnc_client_loop(vnc_client_t* self)
             vnc_screen_publish_frame(self->scrn, (uint8_t *)self->fb, (uint32_t)(self->fb_pixels * sizeof(uint32_t)));
             //vnc_screen_push_event(self->scrn, EVT_UPDATE_FRAMEBUFFER);
         }
-        ESP_LOGI(TAG, "update display");
+        //ESP_LOGI(TAG, "update display");
         self->need_update = 1;
 
     }
@@ -673,7 +673,7 @@ void vnc_client_loop(vnc_client_t* self)
 
 #define USE_TIGHT_ENCODING  1
 #define USE_ZRLE_ENCODING   2
-#define VNC_ENCODING        USE_ZRLE_ENCODING
+#define VNC_ENCODING        USE_TIGHT_ENCODING
 
 void vnc_client_run(vnc_client_t* client)
 {
@@ -692,7 +692,7 @@ void vnc_client_run(vnc_client_t* client)
     {
         2,          // message type
         0,          // padding
-        0, 3,       // number of encodings
+        0, 2,       // number of encodings
 #if VNC_ENCODING == USE_TIGHT_ENCODING
         0, 0, 0, 7, // Tight
 #elif VNC_ENCODING == USE_ZRLE_ENCODING
@@ -700,8 +700,11 @@ void vnc_client_run(vnc_client_t* client)
 #else // RAW_ENCODING
         0, 0, 0, 0, // Raw (desktop fallback)
 #endif
-        0, 0, 0, 0, // Raw (desktop fallback)
+#if ENABLE_JPEG_COMPRESSION || 0
+        0xFF, 0xFF, 0xFF, 0xE6, // Tight + JPEG (JPEG Quality Level Pseudo-encoding)
+#else
         0, 0, 0, 1, // CopyRect
+#endif
     };
 
     if (!write_exact(client->fd, setenc, sizeof(setenc))) 
@@ -724,7 +727,7 @@ void vnc_client_run(vnc_client_t* client)
     fb_req_full[8] = (client->fbh >> 8) & 0xFF;
     fb_req_full[9] = client->fbh & 0xFF;
 
-    ESP_LOGI(TAG, "FramebufferUpdateRequest: 0");
+    //ESP_LOGI(TAG, "FramebufferUpdateRequest: 0");
     if (!write_exact(client->fd, fb_req_full, 10)) 
     {
         vnc_log_append(client->scrn, "[Client] Failed FB request\n");
@@ -866,7 +869,7 @@ static int vnc_client_read_clen(vnc_client_t* self, size_t* len)
         *len |= (size_t)(b & 0x7F) << 7;
         if (b & 0x80) {
             if (!vnc_client_read_u8(self, &b)) return 0;
-            *len |= (size_t)b << 14;
+            *len |= (size_t)(b & 0x7F) << 14;
         }
     }
     return 1;
@@ -886,7 +889,7 @@ static int vnc_client_raw_decode(vnc_client_t* self, int rx, int ry, int rw, int
     uint8_t* pixels = self->rbuf_ptr;
     if (!vnc_client_read_bytes(self, pixels, pix_bytes))
         return 0;
-    ESP_LOGI(TAG, "receive done");
+    //ESP_LOGI(TAG, "receive done");
 
     const uint8_t* src = pixels;
     for (int y = 0; y < rh; ++y)
@@ -925,7 +928,7 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
+    //ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
     if (!vnc_client_read_bytes(self, self->rbuf_ptr, zlen))
         return 0;
 
@@ -942,201 +945,236 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    ESP_LOGI(TAG, "decode title done.");
+    //ESP_LOGI(TAG, "decode title done.");
 
     return 1;
 }
 
-static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
+/* Tight depth-24 wire pixels are R,G,B component bytes (not a native LE pixel). */
+static uint32_t tight_pixel_to_32bit(const uint8_t* p, const PixelFormat* fmt, size_t tpb)
+{
+    if (tpb == 3)
+        return 0xFF000000u | ((uint32_t)p[0] << 16) | ((uint32_t)p[1] << 8) | p[2];
+    return pixel_to_32bit_b(p, fmt, (int)tpb);
+}
+
+static void tight_render_pixels(const uint8_t* pix, const PixelFormat* fmt, size_t tpb,
+    int rw, int rh, uint32_t* fb, int fbw, int rx, int ry)
+{
+    for (int y = 0; y < rh; ++y) {
+        const uint8_t* src = pix + (size_t)y * (size_t)rw * tpb;
+        uint32_t* dst = fb + (size_t)(ry + y) * fbw + rx;
+        for (int x = 0; x < rw; ++x) {
+            dst[x] = tight_pixel_to_32bit(src, fmt, tpb);
+            src += tpb;
+        }
+    }
+}
+
+static void tight_render_palette(const uint8_t* idx_data, int bits,
+    int rw, int rh, const uint32_t* palette, uint32_t* fb, int fbw, int rx, int ry)
+{
+    size_t row_bytes = ((size_t)rw * bits + 7) / 8;
+    unsigned mask = (1u << bits) - 1;
+    for (int y = 0; y < rh; ++y) {
+        const uint8_t* rp = idx_data + (size_t)y * row_bytes;
+        uint32_t* dst = fb + (size_t)(ry + y) * fbw + rx;
+        for (int x = 0; x < rw; ++x) {
+            size_t bitpos = (size_t)x * bits;
+            dst[x] = palette[(rp[bitpos >> 3] >> (8 - bits - (bitpos & 7))) & mask];
+        }
+    }
+}
+
+static int vnc_client_tight_jpeg(vnc_client_t* self, int rx, int ry, int rw, int rh)
 {
     uint32_t* fb = self->fb;
     int fbw = self->fbw;
 
-    //if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) {
-    //    ESP_LOGE(TAG, "Tight rect out of bounds");
-    //    return 0;
-    //}
+    size_t jpeg_len;
+    if (!vnc_client_read_clen(self, &jpeg_len)) return 0;
+    uint8_t* jpeg_data = (uint8_t*)malloc(jpeg_len ? jpeg_len : 1);
+    if (!jpeg_data) return 0;
+    if (!vnc_client_read_bytes(self, jpeg_data, jpeg_len)) { free(jpeg_data); return 0; }
+
+    struct jpeg_decompress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    memset(&cinfo, 0, sizeof(cinfo));
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_decompress(&cinfo);
+    jpeg_mem_src(&cinfo, jpeg_data, jpeg_len);
+    if (jpeg_read_header(&cinfo, TRUE) == JPEG_HEADER_OK) {
+        cinfo.out_color_space = JCS_EXT_BGRA;
+        jpeg_start_decompress(&cinfo);
+        if (cinfo.output_width > (JDIMENSION)rw || cinfo.output_height > (JDIMENSION)rh) {
+            ESP_LOGE(TAG, "Tight JPEG size mismatch");
+            jpeg_abort_decompress(&cinfo);
+            jpeg_destroy_decompress(&cinfo);
+            free(jpeg_data);
+            return 0;
+        }
+        for (int y = 0; y < rh && y < (int)cinfo.output_height; ++y) {
+            uint8_t* row = (uint8_t*)&fb[(ry + y) * fbw + rx];
+            jpeg_read_scanlines(&cinfo, &row, 1);
+            for (int x = cinfo.output_width; x < rw; ++x)
+                fb[(ry + y) * fbw + rx + x] = 0xFF000000;
+        }
+        jpeg_finish_decompress(&cinfo);
+    }
+    jpeg_destroy_decompress(&cinfo);
+    free(jpeg_data);
+    return 1;
+}
+
+/*
+ * Tight encoding, TightVNC wire layout:
+ *   ctrl bits 0-3: reset zlib streams 0..3
+ *   ctrl >> 4:     0x08 fill, 0x09 jpeg,
+ *                  0x0A basic uncompressed, 0x0E basic uncompressed + filter id,
+ *                  0x00-0x07 basic compressed (bits 5-4 = stream index,
+ *                  bit 6 = explicit filter id follows)
+ */
+static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
+{
+    (void)bpp;
+
+    uint32_t* fb = self->fb;
+    int fbw = self->fbw;
+    const PixelFormat* fmt = &self->fmt;
+
+    if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) {
+        ESP_LOGE(TAG, "Tight rect out of bounds");
+        return 0;
+    }
 
     uint8_t ctrl;
     if (!vnc_client_read_u8(self, &ctrl)) return 0;
 
-    for (int i = 0; i < sizeof(self->zstream) / sizeof(self->zstream[0]); ++i) {
-        if (ctrl & (0x10 << i))
+    for (int i = 0; i < (int)(sizeof(self->zstream) / sizeof(self->zstream[0])); ++i) {
+        if (ctrl & (1u << i))
             inflateReset(&self->zstream[i]);
     }
 
-    uint8_t comp_type = ctrl & 0x0F;
+    uint8_t ctype = ctrl >> 4;
 
-    if (comp_type == 0x08) {
+    size_t tpb = (fmt->bpp == 32 && fmt->depth == 24 &&
+        fmt->red_max == 0xFF && fmt->green_max == 0xFF && fmt->blue_max == 0xFF)
+        ? 3 : (size_t)(fmt->bpp / 8);
+
+    if (ctype == 0x08) {
         uint8_t fill_buf[4];
-        if (!vnc_client_read_bytes(self, fill_buf, (size_t)bpp)) return 0;
-        uint32_t color = pixel_to_32bit(fill_buf, &self->fmt);
+        if (tpb > sizeof(fill_buf)) return 0;
+        if (!vnc_client_read_bytes(self, fill_buf, tpb)) return 0;
+        uint32_t color = tight_pixel_to_32bit(fill_buf, fmt, tpb);
         for (int y = 0; y < rh; ++y)
             for (int x = 0; x < rw; ++x)
                 fb[(ry + y) * fbw + (rx + x)] = color;
         return 1;
     }
 
-    if (comp_type == 0x09) {
-        size_t jpeg_len;
-        if (!vnc_client_read_clen(self, &jpeg_len)) return 0;
-        uint8_t* jpeg_data = (uint8_t*)malloc(jpeg_len ? jpeg_len : 1);
-        if (!jpeg_data) return 0;
-        if (!vnc_client_read_bytes(self, jpeg_data, jpeg_len)) { free(jpeg_data); return 0; }
+    if (ctype == 0x09)
+        return vnc_client_tight_jpeg(self, rx, ry, rw, rh);
 
-        struct jpeg_decompress_struct cinfo;
-        struct jpeg_error_mgr jerr;
-        memset(&cinfo, 0, sizeof(cinfo));
-        cinfo.err = jpeg_std_error(&jerr);
-        jpeg_create_decompress(&cinfo);
-        jpeg_mem_src(&cinfo, jpeg_data, jpeg_len);
-        if (jpeg_read_header(&cinfo, TRUE) == JPEG_HEADER_OK) {
-            cinfo.out_color_space = JCS_EXT_BGRA;
-            jpeg_start_decompress(&cinfo);
-            if (cinfo.output_width > (JDIMENSION)rw || cinfo.output_height > (JDIMENSION)rh) {
-                ESP_LOGE(TAG, "Tight JPEG size mismatch");
-                jpeg_abort_decompress(&cinfo);
-                jpeg_destroy_decompress(&cinfo);
-                free(jpeg_data);
-                return 0;
-            }
-            for (int y = 0; y < rh && y < (int)cinfo.output_height; ++y) {
-                uint8_t* row = (uint8_t*)&fb[(ry + y) * fbw + rx];
-                jpeg_read_scanlines(&cinfo, &row, 1);
-                for (int x = cinfo.output_width; x < rw; ++x)
-                    fb[(ry + y) * fbw + rx + x] = 0xFF000000;
-            }
-            jpeg_finish_decompress(&cinfo);
-        }
-        jpeg_destroy_decompress(&cinfo);
-        free(jpeg_data);
-        return 1;
+    int uncompressed = (ctype == 0x0A || ctype == 0x0E);
+    if (!uncompressed && ctype > 0x07) {
+        ESP_LOGE(TAG, "Invalid Tight compression type %u", (unsigned)ctype);
+        return 0;
     }
+    int stream_idx = (int)(ctype & 0x03);
 
-    bool has_palette = (comp_type & 0x04) != 0;
-    int stream_idx = (comp_type & 0x03) - 1;
-    bool is_compressed = (comp_type & 0x03) != 0;
-    uint32_t* palette = NULL;
-    int palette_size = 0;
-
-    if (has_palette) {
-        uint8_t psize;
-        if (!vnc_client_read_u8(self, &psize)) return 0;
-        palette_size = psize + 1;
-        palette = (uint32_t*)malloc((size_t)palette_size * sizeof(uint32_t));
-        if (!palette) return 0;
-        uint8_t pal_buf[4 * 256];
-        if (!vnc_client_read_bytes(self, pal_buf, (size_t)palette_size * bpp)) { free(palette); return 0; }
-        for (int i = 0; i < palette_size; ++i)
-            palette[i] = pixel_to_32bit(pal_buf + i * bpp, &self->fmt);
-    }
-
-    uint8_t* raw_data = NULL;
-    size_t pixel_count = (size_t)rw * rh;
-
-    if (is_compressed) {
-        size_t zlen;
-        if (!vnc_client_read_clen(self, &zlen)) { free(palette); return 0; }
-        uint8_t* compressed = (uint8_t*)malloc(zlen ? zlen : 1);
-        if (!compressed) { free(palette); return 0; }
-        if (!vnc_client_read_bytes(self, compressed, zlen)) { free(compressed); free(palette); return 0; }
-
-        size_t uncomp_size = has_palette ? pixel_count : (pixel_count * bpp + 1);
-        raw_data = (uint8_t*)malloc(uncomp_size ? uncomp_size : 1);
-        if (!raw_data) { free(compressed); free(palette); return 0; }
-        if (!zlib_decompress(&self->zstream[stream_idx], compressed, zlen, raw_data, uncomp_size)) {
-            free(compressed); free(raw_data); free(palette);
+    int filter_id = 0;
+    if (ctrl & 0x40) {
+        uint8_t f;
+        if (!vnc_client_read_u8(self, &f)) return 0;
+        if (f > 2) {
+            ESP_LOGE(TAG, "Unknown Tight filter id %u", (unsigned)f);
             return 0;
         }
-        free(compressed);
+        filter_id = f;
     }
 
-    if (has_palette) {
-        if (!is_compressed) {
-            raw_data = (uint8_t*)malloc(pixel_count ? pixel_count : 1);
-            if (!raw_data) { free(palette); return 0; }
-            if (!vnc_client_read_bytes(self, raw_data, pixel_count)) { free(raw_data); free(palette); return 0; }
-        }
-        for (size_t i = 0; i < pixel_count; ++i) {
-            uint8_t idx = raw_data[i];
-            uint32_t color = (idx < (uint8_t)palette_size) ? palette[idx] : 0xFF000000;
-            int x = rx + (int)(i % (size_t)rw);
-            int y = ry + (int)(i / (size_t)rw);
-            fb[y * fbw + x] = color;
-        }
-        free(raw_data);
-        free(palette);
-        return 1;
-    }
+    int bits_pixel;
+    uint32_t palette[256];
+    int pal_size = 0;
 
-    if (is_compressed) {
-        uint8_t filter = raw_data[0];
-        uint8_t* pixel_data = raw_data + 1;
-        if (filter == 1)
-            tight_filter_gradient(pixel_data, rw, rh, bpp);
-        else if (filter != 0) {
-            ESP_LOGE(TAG, "Unsupported Tight filter: %d", (int)filter);
-            free(raw_data);
+    if (filter_id == 1) {
+        uint8_t n;
+        if (!vnc_client_read_u8(self, &n)) return 0;
+        pal_size = (int)n + 1;
+        if (pal_size < 2 || tpb > 4) {
+            ESP_LOGE(TAG, "Invalid Tight palette size %d", pal_size);
             return 0;
         }
-        for (int y = 0; y < rh; ++y)
-            for (int x = 0; x < rw; ++x) {
-                fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(pixel_data + (y * rw + x) * bpp, &self->fmt);
-            }
-        free(raw_data);
-        return 1;
-    }
-
-    bool has_gradient = (ctrl & 0x20) != 0;
-    if (has_gradient) {
-        uint8_t filter;
-        if (!vnc_client_read_u8(self, &filter)) {
-            ESP_LOGE(TAG, "TIGHT_GRADIENT: read filter failed");
-            return 0;
+        {
+            uint8_t pal_buf[256 * 4];
+            if (!vnc_client_read_bytes(self, pal_buf, (size_t)pal_size * tpb)) return 0;
+            for (int i = 0; i < pal_size; ++i)
+                palette[i] = tight_pixel_to_32bit(pal_buf + i * tpb, fmt, tpb);
         }
-        if (filter == 0x01) {
-            size_t total = (size_t)rw * rh * bpp;
-            uint8_t* raw = (uint8_t*)malloc(total ? total : 1);
-            if (!raw) return 0;
-            if (!vnc_client_read_bytes(self, raw, total)) {
-                ESP_LOGE(TAG, "TIGHT_GRADIENT: read pixels failed");
-                free(raw);
-                return 0;
-            }
-            tight_filter_gradient(raw, rw, rh, bpp);
-            for (int y = 0; y < rh; ++y)
-                for (int x = 0; x < rw; ++x)
-                    fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(raw + (y * rw + x) * bpp, &self->fmt);
-            free(raw);
-        }
-        else if (filter != 0x00) {
-            ESP_LOGE(TAG, "TIGHT_GRADIENT: unknown filter %d", (int)filter);
-            return 0;
-        }
-        else {
-            size_t total = (size_t)rw * rh * bpp;
-            uint8_t* raw = (uint8_t*)malloc(total ? total : 1);
-            if (!raw) return 0;
-            if (!vnc_client_read_bytes(self, raw, total)) return 0;
-            for (int y = 0; y < rh; ++y)
-                for (int x = 0; x < rw; ++x)
-                    fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(raw + (y * rw + x) * bpp, &self->fmt);
-            free(raw);
-        }
+        bits_pixel = (pal_size == 2) ? 1 : 8;
     }
     else {
-        uint8_t* row_buf = (uint8_t*)malloc((size_t)rw * bpp);
-        if (!row_buf) return 0;
-        for (int y = 0; y < rh; ++y) {
-            if (!vnc_client_read_bytes(self, row_buf, (size_t)rw * bpp)) { free(row_buf); return 0; }
-            const uint8_t* src = row_buf;
-            for (int x = 0; x < rw; ++x) {
-                fb[(ry + y) * fbw + (rx + x)] = pixel_to_32bit(src, &self->fmt);
-                src += bpp;
-            }
+        if (filter_id == 2 && tpb != 3) {
+            ESP_LOGE(TAG, "Tight gradient unsupported for %u bytes/pixel", (unsigned)tpb);
+            return 0;
         }
-        free(row_buf);
+        bits_pixel = (tpb == 3) ? 24 : (int)(tpb * 8);
     }
 
+    size_t row_size = ((size_t)rw * bits_pixel + 7) / 8;
+    size_t data_len = row_size * (size_t)rh;
+    uint8_t* data = (uint8_t*)malloc(data_len ? data_len : 1);
+    if (!data) return 0;
+
+    if (!uncompressed && data_len < 12) {
+        /* Small rect: filtered pixel data follows verbatim, no compact length. */
+        if (!vnc_client_read_bytes(self, data, data_len)) goto fail;
+    }
+    else {
+        size_t zlen;
+        if (!vnc_client_read_clen(self, &zlen)) goto fail;
+        if (zlen == 0 || zlen > (size_t)self->fb_pixels * 4 + 65536) {
+            ESP_LOGE(TAG, "Tight bad data length %u", (unsigned)zlen);
+            goto fail;
+        }
+        uint8_t* buf = (uint8_t*)malloc(zlen);
+        if (!buf) goto fail;
+        if (!vnc_client_read_bytes(self, buf, zlen)) { free(buf); goto fail; }
+
+        bool ok;
+        if (uncompressed) {
+            ok = (zlen == data_len);
+            if (ok)
+                memcpy(data, buf, data_len);
+            else
+                ESP_LOGE(TAG, "Tight length mismatch: %u != %u", (unsigned)zlen, (unsigned)data_len);
+        }
+        else {
+            ok = zlib_decompress_exact(&self->zstream[stream_idx], buf, zlen, data, data_len);
+            if (!ok)
+                ESP_LOGE(TAG, "Tight inflate failed (stream %d)", stream_idx);
+        }
+        free(buf);
+        if (!ok) goto fail;
+    }
+
+    switch (filter_id) {
+    case 1:
+        tight_render_palette(data, bits_pixel, rw, rh, palette, fb, fbw, rx, ry);
+        break;
+    case 2:
+        tight_filter_gradient(data, rw, rh, (int)tpb);
+        tight_render_pixels(data, fmt, tpb, rw, rh, fb, fbw, rx, ry);
+        break;
+    default:
+        tight_render_pixels(data, fmt, tpb, rw, rh, fb, fbw, rx, ry);
+        break;
+    }
+
+    free(data);
     return 1;
+
+fail:
+    free(data);
+    return 0;
 }

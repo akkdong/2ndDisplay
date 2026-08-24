@@ -471,6 +471,7 @@ void vnc_screen_stop_play(vnc_screen_t* scrn)
     vnc_display_lock(scrn->disp_handle);
     {
         lv_obj_clear_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_invalidate(scrn->layer_main);
 
         if (scrn->disp_buf)
         {
