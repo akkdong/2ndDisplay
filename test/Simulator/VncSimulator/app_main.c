@@ -466,6 +466,7 @@ static void app_task(void* param)
                 vnc_log_printf(app->scrn, "Network Disconnected!\n");
                 vnc_app_set_state(app, APP_STATE_STANDBY, APP_ACTION_NONE);
                 break;
+
             case VNC_CONNECT_TO_SERVER:
                 if (app->state == APP_STATE_READY && app->action == APP_ACTION_NONE)
                 {
@@ -478,6 +479,18 @@ static void app_task(void* param)
                     vnc_log_printf(app->scrn, "You can't connect to server\n", buf);
                 }
                 break;
+            case VNC_DISCONNECT_SERVER:
+                if (app->state == APP_STATE_PLAY && app->action == APP_ACTION_NONE)
+                {
+                    vnc_client_close(app->client);
+                    vnc_app_send_event(app, VNC_SERVER_DISCONNECTED, -1, -1, -1);
+                }
+                else
+                {
+                    ESP_LOGI(TAG, "Ignore disconnect command");
+                }
+                break;
+
             case VNC_SERVER_CONNECTED:
                 if (msg.data1 == 0)
                     vnc_log_printf(app->scrn, "Server connected: %s\n", app->server_addr);

@@ -137,16 +137,74 @@ static void vnc_size_changed(lv_event_t* evt)
 }
 
 
+static void vnc_handler_hide_timer(lv_timer_t* timer)
+{
+    vnc_screen_t* scrn = (vnc_screen_t*)lv_timer_get_user_data(timer);
+
+    if (lv_obj_is_valid(scrn->btn_disconnect))
+        lv_obj_fade_out(scrn->btn_disconnect, 500, 0);
+
+    lv_timer_del(timer);
+}
+
+static void vnc_handler_on_click_canvas(lv_event_t* evt)
+{
+    lv_event_code_t code = lv_event_get_code(evt);
+    vnc_screen_t* scrn = (vnc_screen_t*)lv_event_get_user_data(evt);
+
+    if (code == LV_EVENT_CLICKED && lv_obj_is_valid(scrn->btn_disconnect))
+    {
+        //bool is_visible = lv_obj_is_visible(scrn->btn_disconnect);
+        //if (!is_visible)
+        {
+            lv_obj_fade_in(scrn->btn_disconnect, 500, 0);
+            lv_timer_create(vnc_handler_hide_timer, 10000, scrn);
+        }
+    }
+}
+
+static void vnc_handler_on_disconnect(lv_event_t* evt)
+{
+    ESP_LOGI(TAG, "*");
+    ESP_LOGI(TAG, "* vnc_handler_on_disconnect");
+    ESP_LOGI(TAG, "*");
+
+    vnc_screen_t* scrn = (vnc_screen_t*)lv_event_get_user_data(evt);
+    vnc_app_send_event(scrn->app, VNC_DISCONNECT_SERVER, 0, 0, 0);
+}
+
+
+
 //
 // canvas: bottom layer
 //
 static lv_obj_t* vnc_create_layer_canvas(vnc_screen_t* scrn, lv_obj_t* parent)
 {
     lv_obj_t* canvas = lv_canvas_create(parent);
+    lv_obj_set_user_data(canvas, scrn);
     //
     // ...
     // 
-    lv_obj_set_user_data(canvas, scrn);
+    lv_obj_add_flag(canvas, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(canvas, vnc_handler_on_click_canvas, LV_EVENT_CLICKED, scrn);
+
+    //
+    lv_obj_t* exit = lv_obj_create(canvas);
+    lv_obj_set_user_data(exit, scrn);
+    lv_obj_set_size(exit, 48, 48);
+    lv_obj_align(exit, LV_ALIGN_BOTTOM_RIGHT, -12, -12);
+    lv_obj_set_style_radius(exit, LV_RADIUS_CIRCLE, 0);
+
+    lv_obj_t* label = lv_label_create(exit);
+    lv_label_set_text(label, LV_SYMBOL_STOP);
+    lv_obj_center(label);
+
+    lv_obj_add_flag(exit, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(exit, vnc_handler_on_disconnect, LV_EVENT_CLICKED, scrn);
+
+
+    scrn->btn_disconnect = exit;
+    lv_timer_create(vnc_handler_hide_timer, 10000, scrn);
 
     return canvas;
 }
@@ -395,15 +453,14 @@ void vnc_screen_create(vnc_screen_t* scrn)
         lv_obj_clean(active);
         lv_obj_set_style_bg_color(active, lv_color_hex(0x0E0E1E), 0);
 
-        scrn->layer_canvas = vnc_create_layer_canvas(scrn, active);
         scrn->layer_main = vnc_create_layer_main(scrn, active);
+        scrn->layer_canvas = vnc_create_layer_canvas(scrn, active);
 #if VNC_CACHE_OBJECTS
         scrn->obj_logs = lv_obj_find_by_name(active, "app_log");
         scrn->obj_state = lv_obj_find_by_name(active, "app_state");
         scrn->btn_connect = lv_obj_find_by_name(active, "btn_connect");
 #endif
-
-        lv_obj_remove_flag(active, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(scrn->layer_canvas, LV_OBJ_FLAG_HIDDEN);
 
         lv_obj_add_event_cb(active, vnc_size_changed, LV_EVENT_SIZE_CHANGED, 0);
 
@@ -456,6 +513,7 @@ bool vnc_screen_start_play(vnc_screen_t* scrn, int width, int height, int bpp)
             lv_canvas_set_buffer(scrn->layer_canvas, scrn->disp_buf, width, height, LV_COLOR_FORMAT_ARGB8888);
         }
 
+        lv_obj_clear_flag(scrn->layer_canvas, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
     }
     vnc_display_unlock(scrn->disp_handle);
@@ -472,9 +530,9 @@ void vnc_screen_stop_play(vnc_screen_t* scrn)
     {
         if (scrn->disp_buf)
         {
-            ESP_LOGI(TAG, "Clear Canvas");
-            lv_canvas_fill_bg(scrn->layer_canvas, lv_color_white(), LV_OPA_COVER);
-            ESP_LOGI(TAG, "Clear Canvas Buffer");
+            //ESP_LOGI(TAG, "Clear Canvas");
+            //lv_canvas_fill_bg(scrn->layer_canvas, lv_color_white(), LV_OPA_COVER);
+            //ESP_LOGI(TAG, "Clear Canvas Buffer");
             //lv_canvas_set_buffer(scrn->layer_canvas, NULL, 0, 0, LV_COLOR_FORMAT_ARGB8888);
 
             //heap_caps_free(scrn->disp_buf);
@@ -482,7 +540,7 @@ void vnc_screen_stop_play(vnc_screen_t* scrn)
         }
 
         lv_obj_clear_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_invalidate(scrn->layer_main);
+        lv_obj_add_flag(scrn->layer_canvas, LV_OBJ_FLAG_HIDDEN);
     }
     vnc_display_unlock(scrn->disp_handle);
 }
@@ -554,7 +612,7 @@ void vnc_screen_update_state(vnc_screen_t* scrn, uint32_t state, uint32_t action
                 case APP_ACTION_VNC_CONNECT:
                     strcat(text, "Connect Server");
                     break;
-                case APP_ACTION_VNC_CLOSE:
+                case APP_ACTION_VNC_DISCONNECT:
                     strcat(text, "Disconnect Server");
                     break;
                 }

@@ -40,7 +40,7 @@ enum app_action_e
     APP_ACTION_WIFI_CONNECT,
     APP_ACTION_VNC_CONNECT,
     APP_ACTION_VNC_HANDSHAKE,
-    APP_ACTION_VNC_CLOSE,
+    APP_ACTION_VNC_DISCONNECT,
 };
 
 enum app_event_e
@@ -49,6 +49,8 @@ enum app_event_e
     NETWORK_DISCONNECTED,
 
     VNC_CONNECT_TO_SERVER = 2000,
+    VNC_DISCONNECT_SERVER,
+
     VNC_SERVER_CONNECTED,           // data1 == -1 on fail
     VNC_HANDSHAKE_FINISHED,         // data1 == -1 on fail
     VNC_SERVER_DISCONNECTED,

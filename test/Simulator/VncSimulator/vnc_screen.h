@@ -40,6 +40,9 @@ struct vnc_screen_s
     lv_obj_t* obj_logs;
     lv_obj_t* obj_state;
     lv_obj_t* btn_connect;
+    lv_obj_t* btn_disconnect;
+
+    lv_timer_t* hide_timer;
 #endif
 
     uint8_t* disp_buf;

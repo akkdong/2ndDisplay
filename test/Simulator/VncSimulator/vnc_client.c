@@ -702,6 +702,11 @@ void vnc_client_run(vnc_client_t* client)
 #endif
 #if ENABLE_JPEG_COMPRESSION || 0
         0xFF, 0xFF, 0xFF, 0xE6, // Tight + JPEG (JPEG Quality Level Pseudo-encoding)
+                                // 0xFFFFFFE0 - QualityLevel(0 ~ 9)
+                                //       0xE0 : Quality 0 (-32), Low quality, Low bandwidth
+                                //       0xE3 : Quality 3 (-29)
+                                //       0xE6 : Quality 6 (-26)
+                                //       0xE9 : Quality 8 (-23), High quality, High bandwidth
 #else
         0, 0, 0, 1, // CopyRect
 #endif
