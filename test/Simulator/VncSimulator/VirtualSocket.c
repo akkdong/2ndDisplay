@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "VirtualSocket.h"
 
 
@@ -15,9 +16,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #endif
-
+#include "esp_log.h"
 
 #pragma comment(lib, "ws2_32.lib")
+
+
+//
+//
+//
+
+static const char* TAG = "SOCK";
 
 
 //
@@ -168,11 +176,15 @@ struct VirtualSocket
 
 static DWORD WINAPI VirtualSocket_Recv(LPVOID pParam)
 {
+	ESP_LOGI(TAG, "VirtualSocket_Recv Thread Started");
 	VirtualSocket_t* s = (VirtualSocket_t*)pParam;
 	uint32_t len = 8 * 1024;
 	uint8_t* buf = (uint8_t*)malloc(len);
 	if (!buf)
+	{
+		ESP_LOGE(TAG, "Recv Memory allocation failed!");
 		return 0;
+	}
 
 	while (1)
 	{
@@ -209,18 +221,24 @@ static DWORD WINAPI VirtualSocket_Recv(LPVOID pParam)
 	}
 
 	free(buf);
+
+	ESP_LOGI(TAG, "VirtualSocket_Recv Thread Exit");
 	return 0;
 }
 
 static DWORD WINAPI VirtualSocket_Send(LPVOID pParam)
 {
+	ESP_LOGI(TAG, "VirtualSocket_Send Thread Started");
 	VirtualSocket_t* s = (VirtualSocket_t*)pParam;
 	uint32_t len = 1 * 1024;
 	uint8_t* buf = (uint8_t*)malloc(len);
 	if (!buf)
+	{
+		ESP_LOGE(TAG, "Send Memory allocation failed!");
 		return 0;
+	}
 
-	while (1)
+	while (s->nState == E_CONNECTED)
 	{
 		EnterCriticalSection(&s->txSection);
 		uint32_t n = RB_Read(&s->txBuffer, buf, len);
@@ -235,6 +253,8 @@ static DWORD WINAPI VirtualSocket_Send(LPVOID pParam)
 				if (ret > 0)
 				{
 					n -= ret;
+
+					Sleep(10);
 				}
 				else
 				{
@@ -247,18 +267,17 @@ static DWORD WINAPI VirtualSocket_Send(LPVOID pParam)
 						s->nState = E_ERROR;
 					}
 				}
-
-				Sleep(10);
 			}
-
-			if (s->nState != E_CONNECTED)
-				break;
 		}
-
-		Sleep(10);
+		else
+		{
+			Sleep(10);
+		}
 	}
 
 	free(buf);
+
+	ESP_LOGI(TAG, "VirtualSocket_Send Thread Exit");
 	return 0;
 }
 
@@ -295,11 +314,11 @@ void VirtualSocket_closesocket(VirtualSocket_t* s)
 	//
 	closesocket(s->socket);
 
-	CloseHandle(s->rxThread);
-	CloseHandle(s->txThread);
-
 	WaitForSingleObject(s->rxThread, INFINITE);
 	WaitForSingleObject(s->txThread, INFINITE);
+
+	CloseHandle(s->rxThread);
+	CloseHandle(s->txThread);
 
 	DeleteCriticalSection(&s->rxSection);
 	DeleteCriticalSection(&s->txSection);
@@ -308,6 +327,8 @@ void VirtualSocket_closesocket(VirtualSocket_t* s)
 	RB_DeInit(&s->txBuffer);
 
 	free(s);
+
+	ESP_LOGI(TAG, "VirtualSocket closed!");
 }
 
 
@@ -348,7 +369,7 @@ int VirtualSocket_setsockopt(VirtualSocket_t* s, int lLevel, int lOptionName, co
 int VirtualSocket_send(VirtualSocket_t* s, const void* pvBuffer, int xTotalLength, int ulFlags)
 {
 	EnterCriticalSection(&s->txSection);
-	uint32_t n = RB_Write(&s->txBuffer, pvBuffer, xTotalLength);
+	uint32_t n = RB_Write(&s->txBuffer, (uint8_t *)pvBuffer, xTotalLength);
 	LeaveCriticalSection(&s->txSection);
 
 	return n;

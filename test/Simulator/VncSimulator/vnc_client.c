@@ -278,7 +278,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     memset(ver, 0, sizeof(ver));
     if (!read_exact(client->fd, ver, 12)) 
         return false;
-    vnc_log_printf(client->scrn, "[Client] Server: %s", (char*)ver);
+    vnc_log_printf(client->scrn, "[I] Server: %s", (char*)ver);
 
     const char* my_ver = "RFB 003.008\n";
     if (!write_exact(client->fd, (const uint8_t*)my_ver, 12)) 
@@ -322,7 +322,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     }
     else 
     {
-        vnc_log_append(client->scrn, "[Client] No supported security type\n");
+        vnc_log_append(client->scrn, "[W] No supported security type\n");
         return false;
     }
 
@@ -350,11 +350,11 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
 
         if (ntohl(result) != 0) 
         {
-            vnc_log_printf(client->scrn, "[Client] Security failed, result=%d\n", ntohl(result));
+            vnc_log_printf(client->scrn, "[E] Security failed, result=%d\n", ntohl(result));
             return false;
         }
 
-        vnc_log_append(client->scrn, "[Client] Security OK\n");
+        vnc_log_append(client->scrn, "[I] Security OK\n");
     }
 
     // 3. ClientInit
@@ -373,9 +373,8 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     client->fmt.red_max = ntohs(client->fmt.red_max);
     client->fmt.green_max = ntohs(client->fmt.green_max);
     client->fmt.blue_max = ntohs(client->fmt.blue_max);
-    vnc_log_printf(client->scrn, "[Client] Frame Resolution: %d x %d\n", client->fbw, client->fbh);
-    vnc_log_printf(client->scrn, "[Client] Frame BPP=%d, DEPTH=%d\n", client->fmt.bpp, client->fmt.depth);
-    vnc_log_printf(client->scrn, "[Client] Frame bing_endian=%d\n", client->fmt.big_endian);
+    vnc_log_printf(client->scrn, "[I] Frame Resolution: %d x %d\n", client->fbw, client->fbh);
+    vnc_log_printf(client->scrn, "[I] PixelFormat: BPP=%d, DEPTH=%d, ENDIAN=%s\n", client->fmt.bpp, client->fmt.depth, client->fmt.big_endian ? "Big" : "Little");
     /*
     std::cout << "Framebuffer: " << fbw << "x" << fbh;
     std::cout << " fmt: bpp=" << int(fmt.bpp) << " depth=" << int(fmt.depth);
@@ -390,7 +389,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     {
         if (nlen > (1 << 20)) 
         {
-            vnc_log_printf(client->scrn, "[Client] Desktop name too long: %u\n", nlen);
+            vnc_log_printf(client->scrn, "[W] Desktop name too long: %u\n", nlen);
             return false;
         }
 
@@ -403,7 +402,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
             return false;
         }
 
-        vnc_log_printf(client->scrn, "[Client] Desktop: %s\n", name);
+        vnc_log_printf(client->scrn, "[I] Desktop: %s\n", name);
         free(name);
     }
 
@@ -412,7 +411,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     uint8_t msg[4] = { 0, 0, 0, 0 };
     if (!write_exact(client->fd, &msg[0], sizeof(msg)))
     {
-        vnc_log_printf(client->scrn, "[Client] SetPixelFormat phase1 failed.\n");
+        vnc_log_printf(client->scrn, "[E] SetPixelFormat phase1 failed.\n");
         return false;
     }
 
@@ -429,7 +428,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
 
     if (!write_exact(client->fd, &client->fmt, sizeof(client->fmt)))
     {
-        vnc_log_printf(client->scrn, "[Client] SetPixelFormat phase2 failed.\n");
+        vnc_log_printf(client->scrn, "[E] SetPixelFormat phase2 failed.\n");
         return false;
     }
 #endif
@@ -437,7 +436,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     const size_t fb_pixels = client->fbw * client->fbh; // *(client->fmt.bpp / 8); // sizeof(uint16_t);
     if (fb_pixels > 0x10000000) 
     {
-        vnc_log_printf(client->scrn, "[Client] Framebuffer too large: %d x %d\n", client->fbw, client->fbh);
+        vnc_log_printf(client->scrn, "[E] Framebuffer too large: %d x %d\n", client->fbw, client->fbh);
         return false;
     }
 
@@ -714,7 +713,7 @@ void vnc_client_run(vnc_client_t* client)
 
     if (!write_exact(client->fd, setenc, sizeof(setenc))) 
     {
-        vnc_log_append(client->scrn, "[Client] Failed to send SetEncodings\n");
+        vnc_log_append(client->scrn, "[E] Failed to send SetEncodings\n");
         client->break_loop = true;
         return;
     }
@@ -735,7 +734,7 @@ void vnc_client_run(vnc_client_t* client)
     //ESP_LOGI(TAG, "FramebufferUpdateRequest: 0");
     if (!write_exact(client->fd, fb_req_full, 10)) 
     {
-        vnc_log_append(client->scrn, "[Client] Failed FB request\n");
+        vnc_log_append(client->scrn, "[E] Failed FB request\n");
         client->break_loop = true;
         return;
     }
@@ -745,6 +744,11 @@ void vnc_client_run(vnc_client_t* client)
 
     while (vnc_client_isOk(client))
         vnc_client_loop(client);
+}
+
+void vnc_client_stop(vnc_client_t* client)
+{
+    client->break_loop = true;
 }
 
 void vnc_client_close(vnc_client_t* client)
@@ -801,25 +805,25 @@ static void vnc_client_deinit(vnc_client_t* client)
 
     if (client->fb)
     {
-        vnc_log_append(client->scrn, "[Client] free Frame Buffer\n");
+        ESP_LOGI(TAG, "free Frame-Buffer");
         free(client->fb);
     }
 
     if (client->rbuf_ptr)
     {
-        vnc_log_append(client->scrn, "[Client] free Receive Buffer\n");
+        ESP_LOGI(TAG, "free Receive-Buffer");
         free(client->rbuf_ptr);
     }
 
     if (client->temp_ptr)
     {
-        vnc_log_append(client->scrn, "[Client] free Temporary Buffer\n");
+        ESP_LOGI(TAG, "free Temporary-Buffer");
         free(client->temp_ptr);
     }
 
     if (client->fd != INVALID_SOCKET)
     {
-        vnc_log_append(client->scrn, "[Client] Close Socket\n");
+        ESP_LOGI(TAG, "Close Socket");
         closesocket(client->fd);
     }
 }
