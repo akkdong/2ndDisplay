@@ -470,19 +470,19 @@ void vnc_screen_stop_play(vnc_screen_t* scrn)
 {
     vnc_display_lock(scrn->disp_handle);
     {
-        lv_obj_clear_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_invalidate(scrn->layer_main);
-
         if (scrn->disp_buf)
         {
             ESP_LOGI(TAG, "Clear Canvas");
             lv_canvas_fill_bg(scrn->layer_canvas, lv_color_white(), LV_OPA_COVER);
             ESP_LOGI(TAG, "Clear Canvas Buffer");
-            lv_canvas_set_buffer(scrn->layer_canvas, NULL, 0, 0, LV_COLOR_FORMAT_ARGB8888);
+            //lv_canvas_set_buffer(scrn->layer_canvas, NULL, 0, 0, LV_COLOR_FORMAT_ARGB8888);
 
             //heap_caps_free(scrn->disp_buf);
             //scrn->disp_buf = NULL;
         }
+
+        lv_obj_clear_flag(scrn->layer_main, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_invalidate(scrn->layer_main);
     }
     vnc_display_unlock(scrn->disp_handle);
 }

@@ -155,35 +155,48 @@ bool zlib_decompress2(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* ou
 
 bool zlib_decompress_exact(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out, size_t outlen)
 {
+    return zlib_inflate_exact(zs, in, inlen, out, outlen) == Z_OK;
+}
+
+int zlib_inflate_exact(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out, size_t outlen)
+{
     if (inlen > (size_t)UINT_MAX || outlen > (size_t)UINT_MAX)
-        return false;
+        return Z_STREAM_ERROR;
 
     zs->next_in = (Bytef*)in;
     zs->avail_in = (uInt)inlen;
     zs->next_out = out;
     zs->avail_out = (uInt)outlen;
 
-    while (zs->avail_out > 0)
+    /*
+     * Fill the output, then keep inflating while input remains: the encoder
+     * appends a Z_SYNC_FLUSH marker (and block-header bits) after each rect,
+     * which inflate can only consume with output space exhausted. Draining
+     * them keeps the shared zlib stream aligned for the next rect.
+     */
+    bool filled = (outlen == 0);
+    while (!filled || zs->avail_in > 0)
     {
-        uInt prev_avail_in = zs->avail_in;
-        uInt prev_avail_out = zs->avail_out;
+        uInt prev_in = zs->avail_in;
+        uInt prev_out = zs->avail_out;
         int ret = inflate(zs, Z_NO_FLUSH);
 
         if (ret == Z_STREAM_END)
+        {
+            if (zs->avail_out == 0)
+                filled = true;
             break;
+        }
 
-        if (ret != Z_OK)
-            return false;
+        if (ret != Z_OK && ret != Z_BUF_ERROR)
+            return ret;
 
-        if (zs->avail_in == prev_avail_in && zs->avail_out == prev_avail_out)
-            return false;
+        if (prev_in == zs->avail_in && prev_out == zs->avail_out)
+            break; /* no progress possible */
+
+        if (zs->avail_out == 0)
+            filled = true;
     }
 
-    /*
-     * Output must be filled completely. Unconsumed input is allowed: the
-     * encoder terminates each rect's data with a Z_SYNC_FLUSH marker which
-     * inflate may leave unread when the output buffer filled first. Those
-     * bytes belong to this rect's compact-length budget and are discarded.
-     */
-    return zs->avail_out == 0;
+    return (filled && zs->avail_out == 0) ? Z_OK : Z_BUF_ERROR;
 }

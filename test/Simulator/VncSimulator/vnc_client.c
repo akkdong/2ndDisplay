@@ -673,7 +673,7 @@ void vnc_client_loop(vnc_client_t* self)
 
 #define USE_TIGHT_ENCODING  1
 #define USE_ZRLE_ENCODING   2
-#define VNC_ENCODING        USE_TIGHT_ENCODING
+#define VNC_ENCODING        USE_ZRLE_ENCODING
 
 void vnc_client_run(vnc_client_t* client)
 {
@@ -1150,9 +1150,19 @@ static int vnc_client_tight_decode(vnc_client_t* self, int rx, int ry, int rw, i
                 ESP_LOGE(TAG, "Tight length mismatch: %u != %u", (unsigned)zlen, (unsigned)data_len);
         }
         else {
-            ok = zlib_decompress_exact(&self->zstream[stream_idx], buf, zlen, data, data_len);
-            if (!ok)
-                ESP_LOGE(TAG, "Tight inflate failed (stream %d)", stream_idx);
+            z_stream* zs = &self->zstream[stream_idx];
+            int zrc = zlib_inflate_exact(zs, buf, zlen, data, data_len);
+            ok = (zrc == Z_OK);
+            if (!ok) {
+                ESP_LOGE(TAG,
+                    "Tight inflate failed (stream %d): zlib=%d msg=%s "
+                    "ctype=0x%02X filter=%d pal=%d rw=%d rh=%d tpb=%u "
+                    "zlen=%u data_len=%u left_in=%u left_out=%u",
+                    stream_idx, zrc, zs->msg ? zs->msg : "-", (unsigned)ctype,
+                    filter_id, pal_size, rw, rh, (unsigned)tpb,
+                    (unsigned)zlen, (unsigned)data_len,
+                    (unsigned)zs->avail_in, (unsigned)zs->avail_out);
+            }
         }
         free(buf);
         if (!ok) goto fail;
