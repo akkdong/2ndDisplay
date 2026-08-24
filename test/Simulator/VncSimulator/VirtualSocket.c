@@ -76,11 +76,11 @@ static uint32_t RB_AvailableSize(RingBuffer* pBuf)
 static uint32_t RB_Read(RingBuffer* pBuf, uint8_t* pData, uint32_t nDataLen)
 {
 	uint32_t nDataSize = RB_DataSize(pBuf);
-	//if (nDataLen > nDataSize)
 	if (nDataSize == 0)
 		return 0;
+	nDataLen = min(nDataLen, nDataSize);
 
-	uint32_t nRemain = min(nDataLen, nDataSize);
+	uint32_t nRemain = nDataLen;
 	uint8_t* pSrc = pBuf->dataPtr + pBuf->rear;
 	uint8_t* pDst = pData;
 
@@ -105,7 +105,7 @@ static uint32_t RB_Read(RingBuffer* pBuf, uint8_t* pData, uint32_t nDataLen)
 		pBuf->rear = (pBuf->rear + nCopy) & (pBuf->dataLen - 1);
 	}
 
-	return min(nDataLen, nDataSize);
+	return nDataLen;
 }
 
 static uint32_t RB_Write(RingBuffer* pBuf, uint8_t* pData, uint32_t nDataLen)

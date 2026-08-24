@@ -98,5 +98,52 @@ bool zlib_decompress(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out
         //std::cerr << "inflate error: " << ret << std::endl;
         return false;
     }
+
     return true;
+}
+
+bool zlib_decompress2(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out, size_t outlen, size_t* decompressed_size)
+{
+    zs->next_in = (uint8_t*)in;
+    zs->avail_in = inlen;
+    zs->next_out = out;
+    zs->avail_out = outlen;
+
+    size_t decomp_size = 0;
+    while (zs->avail_in > 0)
+    {
+        int ret = inflate(zs, Z_NO_FLUSH);
+        if (ret == Z_NEED_DICT || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR)
+            return false;
+
+        size_t decomp_bytes = outlen - zs->avail_out;
+        decomp_size += decomp_bytes;
+
+        zs->next_out = out + decomp_size;
+        zs->avail_out = outlen - decomp_size;
+
+        if (ret == Z_STREAM_END) 
+        {
+            break;
+        }
+    }
+
+    if (decompressed_size != NULL) 
+        *decompressed_size = decomp_size;
+
+    return true;
+    /*
+    int ret = inflate(zs, Z_SYNC_FLUSH);
+    if (ret != Z_OK && ret != Z_STREAM_END)
+    {
+        //std::cerr << "inflate error: " << ret << std::endl;
+        return false;
+    }
+
+    if (decompressed_size != NULL) {
+        *decompressed_size = outlen - zs->avail_out;
+    }
+
+    return true;
+    */
 }

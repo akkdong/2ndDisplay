@@ -186,6 +186,8 @@ static vnc_client_task(void* param)
         {
             vnc_app_send_event(app, VNC_HANDSHAKE_FINISHED, -1, -1, -1);
         }
+
+        vnc_client_close(client);
     }
     else
     {
@@ -239,40 +241,9 @@ vnc_client_t* vnc_client_start(vnc_app_t* app)
 
 bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, int timeout)
 {
-#if USE_WINSOCK_WRAPPER
-    client->fd = Winsock_connect_server(host, port, timeout);
+    client->fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (client->fd == INVALID_SOCKET)
         return false;
-#else
-    client->fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (client->fd < 0)
-        return false;
-
-    /*
-    BaseType_t size = 60 * 1024;
-    BaseType_t ret = FreeRTOS_setsockopt(client->fd, 0, FREERTOS_SO_RCVBUF, &size, 0);
-
-    Socket_t xSocket = client->fd;
-    {
-        // pdMS_TO_TICKS를 사용하여 밀리초(ms)를 FreeRTOS 틱 단위로 변환합니다.
-        TickType_t xReceiveTimeout = pdMS_TO_TICKS(5000); // 5초 타임아웃
-        TickType_t xSendTimeout = pdMS_TO_TICKS(2000);    // 3초 타임아웃
-
-        // 수신(recv) 타임아웃 설정
-        FreeRTOS_setsockopt(xSocket,
-            0,
-            FREERTOS_SO_RCVTIMEO,
-            &xReceiveTimeout,
-            sizeof(xReceiveTimeout));
-
-        // 송신(send) 타임아웃 설정
-        FreeRTOS_setsockopt(xSocket,
-            0,
-            FREERTOS_SO_SNDTIMEO,
-            &xSendTimeout,
-            sizeof(xSendTimeout));
-    }
-    */
 
 #if USE_VIRTUALSOCKET
     struct VirtualSocket_sockaddr addr;
@@ -296,7 +267,6 @@ bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, i
         client->fd = INVALID_SOCKET;
         return false;
     }
-#endif
 
     return true;
 }
@@ -405,6 +375,7 @@ bool vnc_client_handshake(vnc_client_t* client, const char* pass)
     client->fmt.blue_max = ntohs(client->fmt.blue_max);
     vnc_log_printf(client->scrn, "[Client] Frame Resolution: %d x %d\n", client->fbw, client->fbh);
     vnc_log_printf(client->scrn, "[Client] Frame BPP=%d, DEPTH=%d\n", client->fmt.bpp, client->fmt.depth);
+    vnc_log_printf(client->scrn, "[Client] Frame bing_endian=%d\n", client->fmt.big_endian);
     /*
     std::cout << "Framebuffer: " << fbw << "x" << fbh;
     std::cout << " fmt: bpp=" << int(fmt.bpp) << " depth=" << int(fmt.depth);
@@ -700,6 +671,10 @@ void vnc_client_loop(vnc_client_t* self)
     }
 }
 
+#define USE_TIGHT_ENCODING  1
+#define USE_ZRLE_ENCODING   2
+#define VNC_ENCODING        USE_ZRLE_ENCODING
+
 void vnc_client_run(vnc_client_t* client)
 {
     // Send SetEncodings
@@ -717,12 +692,16 @@ void vnc_client_run(vnc_client_t* client)
     {
         2,          // message type
         0,          // padding
-        0, 2,       // number of encodings
+        0, 3,       // number of encodings
+#if VNC_ENCODING == USE_TIGHT_ENCODING
+        0, 0, 0, 7, // Tight
+#elif VNC_ENCODING == USE_ZRLE_ENCODING
+        0, 0, 0, 16, // ZRLE
+#else // RAW_ENCODING
+        0, 0, 0, 0, // Raw (desktop fallback)
+#endif
         0, 0, 0, 0, // Raw (desktop fallback)
         0, 0, 0, 1, // CopyRect
-#if 0
-        0, 0, 0, 7,  // Tight (h/w decode on embedded target)
-#endif
     };
 
     if (!write_exact(client->fd, setenc, sizeof(setenc))) 
@@ -758,6 +737,15 @@ void vnc_client_run(vnc_client_t* client)
 
     while (vnc_client_isOk(client))
         vnc_client_loop(client);
+}
+
+void vnc_client_close(vnc_client_t* client)
+{
+    if (client->fd != INVALID_SOCKET)
+    {
+        closesocket(client->fd);
+        client->fd = INVALID_SOCKET;
+    }
 }
 
 
@@ -833,7 +821,14 @@ static void vnc_client_deinit(vnc_client_t* client)
 static void vnc_client_init_zstreams(vnc_client_t* client)
 {
     for (int i = 0; i < sizeof(client->zstream) / sizeof(client->zstream[0]); ++i)
+    {
+        memset(&client->zstream[i], 0, sizeof(z_stream));
+        client->zstream[i].zalloc = Z_NULL;
+        client->zstream[i].zfree = Z_NULL;
+        client->zstream[i].opaque = Z_NULL;
+
         inflateInit(&client->zstream[i]);
+    }
 }
 
 static void vnc_client_reset_zstream(vnc_client_t* client, int id)
@@ -918,6 +913,11 @@ void decode_zrle_rectangle(
     int screen_w
 );
 
+void parse_zrle_buffer(const uint8_t* decompressed_buf, size_t buf_size,
+    int rect_x, int rect_y, int rect_width, int rect_height,
+    uint32_t* screen_buffer, int screen_width
+);
+
 static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, int rh, int bpp)
 {
     uint32_t* fb = self->fb;
@@ -938,13 +938,18 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    if (!zlib_decompress(&self->zstream[0], self->rbuf_ptr, zlen, self->temp_ptr, self->temp_len))
+    size_t uncomp_size = 0;
+    if (!zlib_decompress2(&self->zstream[0], self->rbuf_ptr, zlen, self->temp_ptr, self->temp_len, &uncomp_size))
     {
         return 0;
     }
 
     ESP_LOGI(TAG, "Receive zlib data");
+#if 1
+    parse_zrle_buffer(self->temp_ptr, uncomp_size, rx, ry, rw, rh, self->fb, self->fbw);
+#else
     decode_zrle_rectangle(self->temp_ptr, self->fb, rx, ry, rw, rh, self->fbw);
+#endif
     ESP_LOGI(TAG, "decode title done.");
 
     return 1;

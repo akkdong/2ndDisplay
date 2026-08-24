@@ -197,7 +197,7 @@ bool vnc_client_connect(vnc_client_t* client, const char* addr, uint16_t port, i
 bool vnc_client_handshake(vnc_client_t* client, const char* pass);
 void vnc_client_loop(vnc_client_t* client);
 void vnc_client_run(vnc_client_t* client);
-
+void vnc_client_close(vnc_client_t* client);
 
 bool vnc_client_isOk(vnc_client_t* client);
 /*
