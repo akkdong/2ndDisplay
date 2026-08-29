@@ -13,6 +13,8 @@
 
 #include "bsp_display.h"
 #include "lvgl.h"
+#include "vnc_types.h"
+
 
 #ifdef __cplusplus
 extern "C"
@@ -24,7 +26,7 @@ extern "C"
  * 
  */
 
-typedef struct vnc_display 
+struct vnc_display_s
 {
     lv_display_t* disp_handle;
     int disp_width;
@@ -34,8 +36,9 @@ typedef struct vnc_display
     esp_lcd_touch_handle_t touch_handle;
 
     SemaphoreHandle_t lvgl_mux;
+    SemaphoreHandle_t trans_sem;
 
-} vnc_display_t;
+};
 
 
 /**
@@ -44,7 +47,16 @@ typedef struct vnc_display
 
 vnc_display_t* vnc_display_start(void);
 
-bool vnc_display_lock(vnc_display_t* disp, bool lock);
+
+/**
+ * 
+ */
+bool vnc_display_lock(vnc_display_t* disp);
+
+/**
+ * 
+ */
+bool vnc_display_unlock(vnc_display_t* disp);
 
 
 #ifdef __cplusplus

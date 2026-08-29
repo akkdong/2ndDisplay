@@ -3,7 +3,8 @@
 
 #include "vnc_display.h"
 
-
+#define DISPLAY_WIDTH		480
+#define DISPLAY_HEIGHT		800
 
 static const char* TAG = "VNC_Disp";
 
@@ -12,15 +13,27 @@ static const char* TAG = "VNC_Disp";
 static esp_lcd_panel_handle_t  panel_handle = NULL;
 static esp_lcd_touch_handle_t  touch_handle = NULL;
 
-static vnc_display_t vnc_disp;
+static vnc_display_t vnc_disp = 
+{
+    .disp_handle = NULL,
+    .disp_width = DISPLAY_WIDTH,
+    .disp_height = DISPLAY_HEIGHT,
+
+    .panel_handle = NULL,
+    .touch_handle = NULL,
+
+    .lvgl_mux = NULL,
+    .trans_sem = NULL,
+};
 
 
+/*
 // LVGL Mutex Handle for Protecting Resource Sharing Between Tasks
 static SemaphoreHandle_t lvgl_mux = NULL;
 
 // Counting semaphore for DSI frame transmission (VSYNC) king
 static SemaphoreHandle_t trans_sem = NULL;
-
+*/
 
 
 
@@ -30,10 +43,13 @@ static SemaphoreHandle_t trans_sem = NULL;
  *          The flush callback waits for this token to safely reuse the buffer.
  */
 
-static bool notify_dsi_vsync_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx) {
+static bool notify_dsi_vsync_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx) 
+{
     BaseType_t need_yield = pdFALSE;
-    if (trans_sem) {
-        xSemaphoreGiveFromISR(trans_sem, &need_yield);
+    if (vnc_disp.trans_sem) 
+    {
+        //
+        xSemaphoreGiveFromISR(vnc_disp.trans_sem, &need_yield);
     }
     return (need_yield == pdTRUE);
 }
@@ -46,16 +62,17 @@ static bool notify_dsi_vsync_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_pan
  *          waits for the transmission complete (VSYNC) of the previous frame, and then calls flush_ready.
  */
 
-static void lvgl_v9_dsi_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+static void lvgl_v9_dsi_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) 
+{
     esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
 
-    if (lv_display_flush_is_last(disp)) {
+    if (lv_display_flush_is_last(disp)) 
+    {
         // Reflect entire frame data in panel FB (Internal FB determination → Cache write-back + cur_fb_index conversion)
         esp_lcd_panel_draw_bitmap(panel, 0, 0, BSP_LCD_H_RES, BSP_LCD_V_RES, px_map);
 
         // Wait until the previous frame is actually transmitted (prevents tearing)
-        xSemaphoreTake(trans_sem, 0);
-        xSemaphoreTake(trans_sem, portMAX_DELAY);
+        xSemaphoreTake(vnc_disp.trans_sem, portMAX_DELAY);
     }
 
     lv_display_flush_ready(disp);
@@ -104,11 +121,13 @@ static uint32_t lvgl_tick_get_cb(void) {
 static void vnc_lvgl_task(void* arg)
 {
     ESP_LOGI(TAG, "Starting LVGL main loop...");
-    while (1) {
+    while (1) 
+    {
         // Perform multithreaded resource locking
-        if (xSemaphoreTake(lvgl_mux, portMAX_DELAY) == pdTRUE) {
+        if (xSemaphoreTake(vnc_disp.lvgl_mux, portMAX_DELAY) == pdTRUE) 
+        {
             uint32_t time_till_next = lv_timer_handler();
-            xSemaphoreGive(lvgl_mux);
+            xSemaphoreGive(vnc_disp.lvgl_mux);
             
             // Efficiency is achieved by yielding tasks until the next event occurs.
             vTaskDelay(pdMS_TO_TICKS(time_till_next > 0 ? time_till_next : 1));
@@ -136,8 +155,9 @@ vnc_display_t* vnc_display_start(void)
     }
 
     // 2. Creating a mutex for multithreaded synchronization
-    lvgl_mux = xSemaphoreCreateMutex();
-    if (lvgl_mux == NULL) {
+    vnc_disp.lvgl_mux = xSemaphoreCreateMutex();
+    if (vnc_disp.lvgl_mux == NULL) 
+    {
         ESP_LOGE(TAG, "Failed to create LVGL Mutex");
         return NULL;
     }
@@ -159,7 +179,8 @@ vnc_display_t* vnc_display_start(void)
     void *buf2 = NULL;
     ESP_ERROR_CHECK(esp_lcd_dpi_panel_get_frame_buffer(panel_handle, 2, &buf1, &buf2));
 
-    if (buf1 == NULL || buf2 == NULL) {
+    if (buf1 == NULL || buf2 == NULL) 
+    {
         ESP_LOGE(TAG, "Failed to get frame buffers from DSI panel!");
         return NULL;
     }
@@ -168,8 +189,9 @@ vnc_display_t* vnc_display_start(void)
     lv_display_set_buffers(disp, buf1, buf2, buffer_bytes, LV_DISPLAY_RENDER_MODE_DIRECT);
 
     // 8. Register DSI frame transmission complete (VSYNC) signal
-    trans_sem = xSemaphoreCreateCounting(1, 0);
-    if (trans_sem == NULL) {
+    vnc_disp.trans_sem = xSemaphoreCreateCounting(1, 0);
+    if (vnc_disp.trans_sem == NULL) 
+    {
         ESP_LOGE(TAG, "Failed to create DSI trans semaphore");
         return NULL;
     }
@@ -181,7 +203,8 @@ vnc_display_t* vnc_display_start(void)
     esp_lcd_dpi_panel_register_event_callbacks(panel_handle, &cbs, disp);
 
     // 9. Create touchscreen input driver object and map handle (perform only when touch is initialized)
-    if (touch_handle != NULL) {
+    if (touch_handle != NULL) 
+    {
         lv_indev_t *indev = lv_indev_create();
         lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
         lv_indev_set_user_data(indev, touch_handle);
@@ -189,18 +212,18 @@ vnc_display_t* vnc_display_start(void)
     }
 
 
-    //
-    // 10. Initialzie vnc screen : call initalize callback
-    //
-    vnc_disp.disp_handle = disp;
-    vnc_disp.disp_width = BSP_LCD_H_RES;
-    vnc_disp.disp_height = BSP_LCD_V_RES;
-    vnc_disp.panel_handle = panel_handle;
-    vnc_disp.touch_handle = touch_handle;
-    vnc_disp.lvgl_mux = lvgl_mux;
+    // Default screen
+    {
+        lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x101020), 0);
+
+        lv_obj_t* label = lv_label_create(lv_screen_active());
+        lv_label_set_text(label, "Start VNC Simulator");
+        lv_obj_set_style_text_color(label, lv_color_hex(0xE0E0E0), 0);
+        lv_obj_center(label);
+    }
 
     // 11. Final LVGL dedicated scheduler execution background task startup (Core 1 recommended)
-    xTaskCreatePinnedToCore(vnc_lvgl_task, "LVGL_Task", 1024 * 8, NULL, 5, NULL, 1);
+    xTaskCreatePinnedToCore(vnc_lvgl_task, "LVGL_Task", 8 * 1024, NULL, tskIDLE_PRIORITY + 1, NULL, 1);
 
     return &vnc_disp;
 }
@@ -210,10 +233,12 @@ vnc_display_t* vnc_display_start(void)
  * 
  */
 
- bool vnc_display_lock(vnc_display_t* disp, bool lock)
- {
-    if (lock)
-        return xSemaphoreTake(lvgl_mux, portMAX_DELAY) == pdTRUE;
-    else
-        return xSemaphoreGive(lvgl_mux) == pdTRUE;
- }
+bool vnc_display_lock(vnc_display_t* disp)
+{
+    return xSemaphoreTake(disp->lvgl_mux, portMAX_DELAY) == pdTRUE;
+}
+
+bool vnc_display_unlock(vnc_display_t* disp)
+{
+    return xSemaphoreGive(disp->lvgl_mux) == pdTRUE;
+}
