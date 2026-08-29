@@ -4,7 +4,12 @@
 #pragma once
 
 #include <stdbool.h>
-#include <zlib.h>
+#if 0
+#include "zlib.h
+#else
+#include "miniz_loc/miniz.h"
+#endif
+
 
 #include "extern.h"
 #include "vnc_types.h"

@@ -4,6 +4,9 @@
 #include "tight_decoder.h"
 #include <limits.h>
 #include "miniz/miniz.h"
+#include "esp_log.h"
+
+static const char* TAG = "DEC";
 
 
 // ============================================================
@@ -125,7 +128,10 @@ bool zlib_decompress(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out
 bool zlib_decompress2(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* out, size_t outlen, size_t* decompressed_size)
 {
     if (inlen > (size_t)UINT_MAX || outlen > (size_t)UINT_MAX)
+    {
+        ESP_LOGE(TAG, "zlib_decompress error: out of range");
         return false;
+    }
 
     zs->next_in = (uint8_t*)in;
     zs->avail_in = (uInt)inlen;
@@ -138,13 +144,19 @@ bool zlib_decompress2(z_stream* zs, const uint8_t* in, size_t inlen, uint8_t* ou
         int ret = inflate(zs, Z_NO_FLUSH);
 
         if (ret == Z_NEED_DICT || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR)
+        {
+            ESP_LOGE(TAG, "zlib_decompress error: %d", ret);
             return false;
+        }
 
         if (ret == Z_STREAM_END)
             break;
 
         if (zs->avail_out == prev_avail_out)
+        {
+            ESP_LOGE(TAG, "zlib_decompress error: zs->avail_out != prev_avail_out");
             return false;
+        }
     }
 
     if (decompressed_size != NULL)

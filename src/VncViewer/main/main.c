@@ -316,7 +316,7 @@ void app_main(void)
     // turn on backlight: brightness 30%
     bsp_display_brightness_set(30);  
 
-#if 0
+#if 1
     //
     // Discovery WIFI
     //
@@ -326,6 +326,7 @@ void app_main(void)
     // 네트워크 인터페이스 및 이벤트 루프 초기화
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+    /*
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_and_ip_event_handler,
@@ -336,7 +337,7 @@ void app_main(void)
                                                         &wifi_and_ip_event_handler, 
                                                         NULL, 
                                                         NULL));
-    
+    */
     // ESP-Hosted 드라이버가 초기화된 후 생성된 netif를 바인딩합니다.
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
     assert(sta_netif);

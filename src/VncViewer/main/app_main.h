@@ -47,6 +47,9 @@ enum app_event_e
     VNC_SERVER_CONNECTED,           // data1 == -1 on fail
     VNC_HANDSHAKE_FINISHED,         // data1 == -1 on fail
     VNC_SERVER_DISCONNECTED,
+
+    OPEN_WIFI_SETTING,
+    OPEN_CONNECT_POPUP,
 };
 
 

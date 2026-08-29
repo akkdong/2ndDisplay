@@ -3,7 +3,11 @@
 
 #include "tight_decoder.h"
 #include <limits.h>
-#include "zlib.h"
+#if 0
+#include "zlib.h
+#else
+#include "miniz_loc/miniz.h"
+#endif
 
 
 // ============================================================

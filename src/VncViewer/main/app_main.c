@@ -74,7 +74,7 @@ vnc_app_t vnc_app =
 
     .server_addr = "192.168.219.201", // { 0 },
     .server_port = 5900,
-    .server_pass = "test", // { 0 },
+    .server_pass = "password", // { 0 },
 
     .state = APP_STATE_INIT,
     .action = APP_ACTION_NONE,
@@ -228,7 +228,7 @@ static void app_task(void* param)
                 break;
 
             case VNC_CONNECT_TO_SERVER:
-                if (app->state == APP_STATE_READY && app->action == APP_ACTION_NONE)
+                if (1 || (app->state == APP_STATE_READY && app->action == APP_ACTION_NONE))
                 {
                     app->client = vnc_client_start(app);
                     if (!app->client)
@@ -289,6 +289,15 @@ static void app_task(void* param)
                 {
                     vnc_log_append(app->scrn, "[E] Failed to connect to server\n");
                 }
+                break;
+
+
+            case OPEN_WIFI_SETTING:
+                vnc_screen_open_wifi_setting(app->scrn);
+                break;
+
+            case OPEN_CONNECT_POPUP:
+                vnc_screen_open_connect_popup(app->scrn);
                 break;
             }
         }

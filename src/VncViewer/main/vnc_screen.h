@@ -98,6 +98,15 @@ void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size);
 
 
 /**
+ * 
+ */
+void vnc_screen_open_wifi_setting(vnc_screen_t* scrn);
+
+void vnc_screen_open_connect_popup(vnc_screen_t* scrn);
+
+
+
+/**
  *
  */
 void vnc_log_append(vnc_screen_t* scrn, const char* text);

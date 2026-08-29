@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="miniz">
+      <UniqueIdentifier>{8685efe1-92f9-4ec5-bbbe-8bd397109490}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VncSimulator.c">
@@ -66,6 +69,9 @@
     <ClCompile Include="VirtualSocket.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="miniz_loc\miniz.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_state.h">
@@ -112,6 +118,24 @@
     </ClInclude>
     <ClInclude Include="VirtualSocket.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz_loc\miniz.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz_loc\miniz_common.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz_loc\miniz_export.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz_loc\miniz_tdef.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz_loc\miniz_tinfl.h">
+      <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz_loc\miniz_zip.h">
+      <Filter>miniz</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -7,9 +7,9 @@
 #include <stdint.h>
 
 
-#if defined(_WIN32)
+//#if defined(_WIN32)
 #pragma pack( push, 1 )
-#endif
+//#endif
 
 struct PixelFormat_s {
     uint8_t bpp;
@@ -24,12 +24,12 @@ struct PixelFormat_s {
     uint8_t blue_shift;
     uint8_t pad[3];
 }
-#if defined(_WIN32)
+//#if defined(_WIN32)
 ;
 #pragma pack( pop )
-#else
-__attribute__((packed));
-#endif
+//#else
+//__attribute__((packed));
+//#endif
 
 typedef struct PixelFormat_s PixelFormat;
 
@@ -46,7 +46,7 @@ typedef enum app_event_e app_event_t;
 typedef uint16_t lcd_color_t;
 
 
-#define heap_caps_malloc(x, y)		malloc(x)
-#define heap_caps_free(ptr)			free(ptr)
+//#define heap_caps_malloc(x, y)		malloc(x)
+//#define heap_caps_free(ptr)			free(ptr)
 
 //#define ESP_LOGI(TAG, fmt, ...)		printf(fmt, ##__VA_ARGS__)

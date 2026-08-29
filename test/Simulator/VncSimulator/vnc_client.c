@@ -829,6 +829,13 @@ static void vnc_client_deinit(vnc_client_t* client)
 }
 
 
+void* custom_zalloc(void* opaque, size_t items, size_t size) {
+    return malloc(items * size); // FreeRTOS 할당 함수
+}
+
+void custom_zfree(void* opaque, void* ptr) {
+    free(ptr); // FreeRTOS 해제 함수
+}
 
 static void vnc_client_init_zstreams(vnc_client_t* client)
 {
@@ -838,6 +845,8 @@ static void vnc_client_init_zstreams(vnc_client_t* client)
         client->zstream[i].zalloc = Z_NULL;
         client->zstream[i].zfree = Z_NULL;
         client->zstream[i].opaque = Z_NULL;
+        client->zstream[i].zalloc = custom_zalloc;
+        client->zstream[i].zfree = custom_zfree;
 
         inflateInit(&client->zstream[i]);
     }

@@ -510,7 +510,7 @@ void vnc_client_loop(vnc_client_t* self)
                     uint16_t rh = (uint16_t)(((uint16_t)rect_hdr[6] << 8) | rect_hdr[7]);
                     int32_t encoding = ((int32_t)rect_hdr[8] << 24) | ((int32_t)rect_hdr[9] << 16) |
                         ((int32_t)rect_hdr[10] << 8) | rect_hdr[11];
-                    //ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
+                    ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
                     if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) 
                     {
                         ESP_LOGE(TAG, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)",
@@ -640,6 +640,7 @@ void vnc_client_loop(vnc_client_t* self)
     }
 }
 
+#define USE_RAW_ENCODING    0
 #define USE_TIGHT_ENCODING  1
 #define USE_ZRLE_ENCODING   2
 #define VNC_ENCODING        USE_ZRLE_ENCODING
@@ -798,6 +799,17 @@ static void vnc_client_deinit(vnc_client_t* client)
     }
 }
 
+void* custom_zalloc(void* opaque, size_t items, size_t size) {
+    void* ptr = heap_caps_malloc(items * size, MALLOC_CAP_SPIRAM);
+    if (!ptr) {
+        ESP_LOGE(TAG, "custom_zalloc(%u) failed: ", size * items);
+    }
+    return ptr;
+}
+
+void custom_zfree(void* opaque, void* ptr) {
+    heap_caps_free(ptr);
+}
 
 
 static void vnc_client_init_zstreams(vnc_client_t* client)
@@ -808,6 +820,8 @@ static void vnc_client_init_zstreams(vnc_client_t* client)
         client->zstream[i].zalloc = Z_NULL;
         client->zstream[i].zfree = Z_NULL;
         client->zstream[i].opaque = Z_NULL;
+        client->zstream[i].zalloc = custom_zalloc;
+        client->zstream[i].zfree = custom_zfree;
 
         inflateInit(&client->zstream[i]);
     }
@@ -907,7 +921,7 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    //ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
+    ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
     if (!vnc_client_read_bytes(self, self->rbuf_ptr, zlen))
         return 0;
 
@@ -924,7 +938,7 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    //ESP_LOGI(TAG, "decode title done.");
+    ESP_LOGI(TAG, "decode title done.");
 
     return 1;
 }

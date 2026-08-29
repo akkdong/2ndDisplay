@@ -106,9 +106,12 @@ static void on_clicked_wifi(lv_event_t* evt)
     //lv_obj_t* button = (lv_obj_t*)lv_event_get_target(evt);
     vnc_screen_t* scrn = (vnc_screen_t*)lv_event_get_user_data(evt);
 
+    vnc_app_send_event(scrn->app, OPEN_WIFI_SETTING, 0, 0, 0);
+    /*
     vnc_wifi_popup_t* popup = vnc_wifi_popup_init(scrn, NULL);
     if (popup)
         popup->show_popup(popup);
+    */
 
     /*
     ESP_LOGI(TAG, "show_wifi_setting_popup [IN]");
@@ -122,6 +125,8 @@ static void on_clicked_connect(lv_event_t* evt)
     //lv_obj_t* button = (lv_obj_t*)lv_event_get_target(evt);
     vnc_screen_t* scrn = (vnc_screen_t*)lv_event_get_user_data(evt);
 
+    vnc_app_send_event(scrn->app, OPEN_CONNECT_POPUP, 0, 0, 0);
+    /*
     vnc_connect_popup_t* popup = vnc_connect_popup_init(scrn, vnc_handler_on_connect);
     if (popup)
     {
@@ -130,6 +135,7 @@ static void on_clicked_connect(lv_event_t* evt)
 
         popup->show_popup(popup);
     }
+    */
 }
 
 
@@ -565,6 +571,41 @@ void vnc_screen_publish_frame(vnc_screen_t* scrn, uint8_t* buf, uint32_t size)
     vnc_display_unlock(scrn->disp_handle);
 }
 
+
+
+/**
+ * 
+ */
+void vnc_screen_open_wifi_setting(vnc_screen_t* scrn)
+{
+    ESP_LOGI(TAG, "ENTER vnc_screen_open_wifi_setting()");
+    vnc_display_lock(scrn->disp_handle);
+    {
+        vnc_wifi_popup_t* popup = vnc_wifi_popup_init(scrn, NULL);
+        if (popup)
+            popup->show_popup(popup);
+    }
+    vnc_display_unlock(scrn->disp_handle);
+    ESP_LOGI(TAG, "LEAVE vnc_screen_open_wifi_setting()");
+}
+
+void vnc_screen_open_connect_popup(vnc_screen_t* scrn)
+{
+    ESP_LOGI(TAG, "ENTER vnc_screen_open_connect_popup()");
+    vnc_display_lock(scrn->disp_handle);
+    {
+        vnc_connect_popup_t* popup = vnc_connect_popup_init(scrn, vnc_handler_on_connect);
+        if (popup)
+        {
+            if (scrn->app->get_server_info)
+                scrn->app->get_server_info(scrn->app, popup->address, &popup->port, popup->password);
+
+            popup->show_popup(popup);
+        }
+    }
+    vnc_display_unlock(scrn->disp_handle);
+    ESP_LOGI(TAG, "LEAVE vnc_screen_open_connect_popup()");
+}
 
 
 /**

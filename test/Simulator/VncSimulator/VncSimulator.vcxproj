@@ -98,6 +98,7 @@
     <ClCompile Include="main.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="miniz_loc\miniz.c" />
     <ClCompile Include="net_state.c" />
     <ClCompile Include="tight_decoder.c" />
     <ClCompile Include="VirtualSocket.c" />
@@ -119,6 +120,12 @@
     <ClInclude Include="d3des.h" />
     <ClInclude Include="esp_log.h" />
     <ClInclude Include="extern.h" />
+    <ClInclude Include="miniz_loc\miniz.h" />
+    <ClInclude Include="miniz_loc\miniz_common.h" />
+    <ClInclude Include="miniz_loc\miniz_export.h" />
+    <ClInclude Include="miniz_loc\miniz_tdef.h" />
+    <ClInclude Include="miniz_loc\miniz_tinfl.h" />
+    <ClInclude Include="miniz_loc\miniz_zip.h" />
     <ClInclude Include="net_state.h" />
     <ClInclude Include="tight_decoder.h" />
     <ClInclude Include="VirtualSocket.h" />

@@ -5,7 +5,12 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <zlib.h>
+#if 0
+#include "zlib.h
+#else
+#include "miniz_loc/miniz.h"
+#endif
+
 
 #include "vnc_client.h"
 
