@@ -314,7 +314,7 @@ vnc_app_t vnc_app =
 #endif
 
     .server_addr = "", // { 0 },
-    .server_port = 590,
+    .server_port = 5900,
     .server_pass = "", // { 0 },
 
     .state = APP_STATE_INIT,

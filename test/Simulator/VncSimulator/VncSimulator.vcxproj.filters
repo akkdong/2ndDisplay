@@ -72,6 +72,15 @@
     <ClCompile Include="miniz_loc\miniz.c">
       <Filter>miniz</Filter>
     </ClCompile>
+    <ClCompile Include="miniz_loc\miniz_tdef.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz_loc\miniz_tinfl.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz_loc\miniz_zip.c">
+      <Filter>miniz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="net_state.h">

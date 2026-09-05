@@ -524,7 +524,7 @@ void vnc_client_loop(vnc_client_t* self)
             if (msg_ok) 
             {
                 nrects = (uint16_t)(((uint16_t)nrbuf[0] << 8) | nrbuf[1]);
-                //ESP_LOGI(TAG, "nrets = %d", nrects);
+                ESP_LOGI(TAG, "nrets = %d", nrects);
                 for (int i = 0; i < nrects && msg_ok; ++i) 
                 {
                     uint8_t rect_hdr[12];
@@ -540,7 +540,7 @@ void vnc_client_loop(vnc_client_t* self)
                     uint16_t rh = (uint16_t)(((uint16_t)rect_hdr[6] << 8) | rect_hdr[7]);
                     int32_t encoding = ((int32_t)rect_hdr[8] << 24) | ((int32_t)rect_hdr[9] << 16) |
                         ((int32_t)rect_hdr[10] << 8) | rect_hdr[11];
-                    //ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
+                    ESP_LOGI(TAG, "rect #%d: (%d, %d, %d, %d), %d", i, rx, ry, rw, rh, encoding);
                     if (!vnc_client_rect_ok(self, rx, ry, rw, rh)) 
                     {
                         ESP_LOGE(TAG, "Rect out of bounds: %u,%u %ux%u (fb %u x %u)",
@@ -670,6 +670,7 @@ void vnc_client_loop(vnc_client_t* self)
     }
 }
 
+#define USE_RAW_ENCODING    0
 #define USE_TIGHT_ENCODING  1
 #define USE_ZRLE_ENCODING   2
 #define VNC_ENCODING        USE_ZRLE_ENCODING
@@ -723,7 +724,7 @@ void vnc_client_run(vnc_client_t* client)
 #if 1
     uint8_t fb_req_full[] = 
     { 
-        3, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+        3, 1, 0, 0, 0, 0, 0, 0, 0, 0 
     };
 
     fb_req_full[6] = (client->fbw >> 8) & 0xFF;
@@ -946,7 +947,7 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    //ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
+    ESP_LOGI(TAG, "ZRLE receiving %u bytes", zlen);
     if (!vnc_client_read_bytes(self, self->rbuf_ptr, zlen))
         return 0;
 
@@ -963,7 +964,7 @@ static int vnc_client_zrle_decode(vnc_client_t* self, int rx, int ry, int rw, in
         return 0;
     }
 
-    //ESP_LOGI(TAG, "decode title done.");
+    ESP_LOGI(TAG, "decode title done.");
 
     return 1;
 }

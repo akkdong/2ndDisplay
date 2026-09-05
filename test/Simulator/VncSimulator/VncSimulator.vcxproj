@@ -99,6 +99,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="miniz_loc\miniz.c" />
+    <ClCompile Include="miniz_loc\miniz_tdef.c" />
+    <ClCompile Include="miniz_loc\miniz_tinfl.c" />
+    <ClCompile Include="miniz_loc\miniz_zip.c" />
     <ClCompile Include="net_state.c" />
     <ClCompile Include="tight_decoder.c" />
     <ClCompile Include="VirtualSocket.c" />
