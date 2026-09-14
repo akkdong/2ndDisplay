@@ -12,6 +12,19 @@ CXX ?= g++
 CFLAGS = -Wall -Wextra -O3 -g -I. -I./lvgl $(shell pkg-config --cflags sdl2)
 CXXFLAGS = -Wall -Wextra -O3 -g -std=c++17 -I. -I./lvgl  $(shell pkg-config --cflags sdl2)
 
+DISP_DRIVER ?= SDL
+
+ifeq ($(DISP_DRIVER), SDL)
+    CFLAGS   += -DLV_USE_SDL=1
+    CXXFLAGS += -DLV_USE_SDL=1
+else ifeq ($(DISP_DRIVER), FBDEV)
+    CFLAGS   += -DLV_USE_LINUX_FBDEV=1
+    CXXFLAGS += -DLV_USE_LINUX_FBDEV=1
+else
+    # DISP_DRIVER가 비어있거나 올바르지 않은 값인 경우 빌드 실패 처리
+    $(error Invalid or missing DISP_DRIVER '$(DISP_DRIVER)'. Must be 'SDL' or 'FBDEV')
+endif
+
 # 링커 플래그 (SDL2 및 C++ 표준 라이브러리 링크)
 LDFLAGS = -lSDL2 -lm -lstdc++ -ljpeg -lz $(shell pkg-config --libs sdl2)
 

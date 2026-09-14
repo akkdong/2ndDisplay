@@ -920,16 +920,16 @@
 #define LV_FONT_MONTSERRAT_10 0
 
 /** Enable Montserrat 12 */
-#define LV_FONT_MONTSERRAT_12 0
+#define LV_FONT_MONTSERRAT_12 1
 
 /** Enable Montserrat 14 */
 #define LV_FONT_MONTSERRAT_14 1
 
 /** Enable Montserrat 16 */
-#define LV_FONT_MONTSERRAT_16 0
+#define LV_FONT_MONTSERRAT_16 1
 
 /** Enable Montserrat 18 */
-#define LV_FONT_MONTSERRAT_18 0
+#define LV_FONT_MONTSERRAT_18 1
 
 /** Enable Montserrat 20 */
 #define LV_FONT_MONTSERRAT_20 0
@@ -941,7 +941,7 @@
 #define LV_FONT_MONTSERRAT_24 0
 
 /** Enable Montserrat 26 */
-#define LV_FONT_MONTSERRAT_26 0
+#define LV_FONT_MONTSERRAT_26 1
 
 /** Enable Montserrat 28 */
 #define LV_FONT_MONTSERRAT_28 0
@@ -950,7 +950,7 @@
 #define LV_FONT_MONTSERRAT_30 0
 
 /** Enable Montserrat 32 */
-#define LV_FONT_MONTSERRAT_32 0
+#define LV_FONT_MONTSERRAT_32 1
 
 /** Enable Montserrat 34 */
 #define LV_FONT_MONTSERRAT_34 0
@@ -1057,7 +1057,7 @@
  *  - LV_FONT_DEFAULT_UNSCII_8: UNSCII 8 (Perfect monospace font) (enable: LV_FONT_UNSCII_8)
  *  - LV_FONT_DEFAULT_UNSCII_16: UNSCII 16 (Perfect monospace font) (enable: LV_FONT_UNSCII_16)
  */
-#define LV_FONT_DEFAULT LV_FONT_DEFAULT_MONTSERRAT_14
+#define LV_FONT_DEFAULT &lv_font_montserrat_12
 
 #endif /*!LV_USE_CUSTOM_FONT_DEFAULT*/
 
@@ -1480,7 +1480,9 @@
 #endif /*LV_USE_LINUX_DRM*/
 
 /** Driver for /dev/fb */
-#define LV_USE_LINUX_FBDEV 1
+#ifndef LV_USE_LINUX_FBDEV
+#define LV_USE_LINUX_FBDEV 0
+#endif
 
 #if LV_USE_LINUX_FBDEV
 /** Use BSD flavored framebuffer device */
@@ -1709,7 +1711,9 @@
 #endif /*LV_USE_QNX*/
 
 /** Use SDL to open window on PC and handle mouse and keyboard. */
+#ifndef LV_USE_SDL
 #define LV_USE_SDL 0
+#endif
 
 #if LV_USE_SDL
 /** SDL include path */

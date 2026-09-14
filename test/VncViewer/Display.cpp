@@ -58,15 +58,18 @@ bool Display::begin(std::string& host, int port, std::string& password)
     //
     lv_init();
 
-    #if USE_SDL
+    #if LV_USE_SDL
     m_disp = lv_sdl_window_create(800, 600);
     m_mouse = lv_sdl_mouse_create();
-    #else
+    #elif LV_USE_LINUX_FBDEV
     m_disp = lv_linux_fbdev_create();
     lv_linux_fbdev_set_file(m_disp, "/dev/fb0");
     lv_linux_fbdev_set_force_refresh(m_disp, true);
     m_mouse = lv_evdev_create(LV_INDEV_TYPE_POINTER, "/dev/input/event0"); // lv_sdl_mouse_create();
+    #else
+    #error "Invalid Display Driver! Define either LV_USE_SDL=1 or LV_USE_LINUX_FBDEV=1."
     #endif
+
     lv_indev_set_display(m_mouse, m_disp);
 
     //
@@ -119,7 +122,7 @@ bool Display::loop()
     // Render under m_frameMutex so the VNC worker's publishFrame() cannot
     // overwrite the canvas buffer while LVGL is redrawing it.
     SDL_LockMutex(m_frameMutex);
-    lv_tick_inc(5);
+    //lv_tick_inc(5);
     uint32_t ms = lv_timer_handler();
     SDL_UnlockMutex(m_frameMutex);
     lv_sleep_ms(ms);
@@ -383,7 +386,11 @@ void Display::create_vnc_ui(void *buf, int32_t w, int32_t h)
     s_canvas = lv_canvas_create(screen);
     lv_canvas_set_buffer(s_canvas, buf, w, h, LV_COLOR_FORMAT_ARGB8888);
     lv_obj_align(s_canvas, LV_ALIGN_TOP_LEFT, 0, 0);
+    #if 0
     lv_obj_set_clickable(s_canvas, true);
+    #else
+    lv_obj_add_flag(s_canvas, LV_OBJ_FLAG_CLICKABLE); // or lv_obj_set_flag(s_canvas, LV_OBJ_FLAG_CLICKABLE, true);
+    #endif
     lv_obj_add_event_cb(s_canvas, ui_event_handler, LV_EVENT_ALL, NULL);
 
     // ----------------------------------------------------
@@ -407,7 +414,11 @@ void Display::create_vnc_ui(void *buf, int32_t w, int32_t h)
     lv_obj_set_pos(s_tab_bar, 0, 0);
     lv_obj_set_style_bg_color(s_tab_bar, lv_color_hex(0x1ABC9C), 0);
     lv_obj_set_style_pad_all(s_tab_bar, 5, 0);
+    #if 0
     lv_obj_set_clickable(s_tab_bar, true);
+    #else
+    lv_obj_add_flag(s_tab_bar, LV_OBJ_FLAG_CLICKABLE);
+    #endif
     lv_obj_add_event_cb(s_tab_bar, ui_event_handler, LV_EVENT_ALL, NULL);
 
     for (int i = 0; i < 3; i++) {
