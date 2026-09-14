@@ -5,8 +5,8 @@ TARGET = VncViewer
 BUILD_DIR = build
 
 # 컴파일러 설정
-CC = gcc
-CXX = g++
+CC ?= gcc
+CXX ?= g++
 
 # 컴파일 플래그 설정
 CFLAGS = -Wall -Wextra -O3 -g -I. -I./lvgl $(shell pkg-config --cflags sdl2)

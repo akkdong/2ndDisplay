@@ -58,8 +58,15 @@ bool Display::begin(std::string& host, int port, std::string& password)
     //
     lv_init();
 
+    #if USE_SDL
     m_disp = lv_sdl_window_create(800, 600);
     m_mouse = lv_sdl_mouse_create();
+    #else
+    m_disp = lv_linux_fbdev_create();
+    lv_linux_fbdev_set_file(m_disp, "/dev/fb0");
+    lv_linux_fbdev_set_force_refresh(m_disp, true);
+    m_mouse = lv_evdev_create(LV_INDEV_TYPE_POINTER, "/dev/input/event0"); // lv_sdl_mouse_create();
+    #endif
     lv_indev_set_display(m_mouse, m_disp);
 
     //
@@ -112,6 +119,7 @@ bool Display::loop()
     // Render under m_frameMutex so the VNC worker's publishFrame() cannot
     // overwrite the canvas buffer while LVGL is redrawing it.
     SDL_LockMutex(m_frameMutex);
+    lv_tick_inc(5);
     uint32_t ms = lv_timer_handler();
     SDL_UnlockMutex(m_frameMutex);
     lv_sleep_ms(ms);
@@ -176,6 +184,7 @@ int Display::VncClientWorker(void* data)
 
 void Display::OnEvent(void* userData)
 {
+    static int count = 0;
     Display* display = reinterpret_cast<Display *>(userData);
     switch (display->popEvent())
     {

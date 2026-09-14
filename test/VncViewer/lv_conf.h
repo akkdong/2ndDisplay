@@ -34,7 +34,7 @@
  *  - LV_STDLIB_RTTHREAD: RT-Thread functions malloc/realloc/free
  *  - LV_STDLIB_CUSTOM: Implement the functions externally
  */
-#define LV_USE_STDLIB_MALLOC LV_STDLIB_BUILTIN
+#define LV_USE_STDLIB_MALLOC LV_STDLIB_CLIB
 
 /** String functions source
  *  Possible values:
@@ -43,7 +43,7 @@
  *  - LV_STDLIB_RTTHREAD: RT-Thread functions rt_memcpy/rt_memset/rt_strlen/rt_strcpy
  *  - LV_STDLIB_CUSTOM: Implement the functions externally
  */
-#define LV_USE_STDLIB_STRING LV_STDLIB_BUILTIN
+#define LV_USE_STDLIB_STRING LV_STDLIB_CLIB
 
 /** Sprintf functions source
  *  Possible values:
@@ -56,7 +56,7 @@
 
 #if LV_USE_STDLIB_MALLOC == LV_STDLIB_BUILTIN
 /** Memory size in bytes (Needs to be at least 2kB (2048)) */
-#define LV_MEM_SIZE 65536
+#define LV_MEM_SIZE (1 * 1024 * 1024U)
 
 /** Address for the memory pool instead of allocating it as a normal array. 0: unused */
 #define LV_MEM_ADR 0x0
@@ -99,7 +99,7 @@
  *  - LV_OS_SDL2
  *  - LV_OS_CUSTOM
  */
-#define LV_USE_OS LV_OS_SDL2
+#define LV_USE_OS LV_OS_NONE
 
 #if LV_USE_OS == LV_OS_CUSTOM
 /** Custom OS include header */
@@ -692,7 +692,7 @@
  *============================================================================*/
 
 /** Enable log module */
-#define LV_USE_LOG 0
+#define LV_USE_LOG 1
 
 #if LV_USE_LOG
 /** Specify how important log should be added.
@@ -704,12 +704,12 @@
  *  - LV_LOG_LEVEL_USER: Only logs added by the user
  *  - LV_LOG_LEVEL_NONE: Do not log anything
  */
-#define LV_LOG_LEVEL LV_LOG_LEVEL_WARN
+#define LV_LOG_LEVEL LV_LOG_LEVEL_INFO
 
 /** Use printf for log output.
  *  If not set the user needs to register a callback with `lv_log_register_print_cb`.
  */
-#define LV_LOG_PRINTF 0
+#define LV_LOG_PRINTF 1
 
 /** Enable print timestamp */
 #define LV_LOG_USE_TIMESTAMP 1
@@ -1480,7 +1480,7 @@
 #endif /*LV_USE_LINUX_DRM*/
 
 /** Driver for /dev/fb */
-#define LV_USE_LINUX_FBDEV 0
+#define LV_USE_LINUX_FBDEV 1
 
 #if LV_USE_LINUX_FBDEV
 /** Use BSD flavored framebuffer device */
@@ -1576,7 +1576,7 @@
 #define LV_USE_TFT_ESPI 0
 
 /** Driver for evdev input devices */
-#define LV_USE_EVDEV 0
+#define LV_USE_EVDEV 1
 
 /** Driver for libinput input devices */
 #define LV_USE_LIBINPUT 0
@@ -1709,7 +1709,7 @@
 #endif /*LV_USE_QNX*/
 
 /** Use SDL to open window on PC and handle mouse and keyboard. */
-#define LV_USE_SDL 1
+#define LV_USE_SDL 0
 
 #if LV_USE_SDL
 /** SDL include path */
