@@ -15,6 +15,9 @@ set(
         "zrle_decode.c"
         "d3des.c"
         "miniz/miniz.c"
+        "miniz/miniz_tinfl.c"
+        "miniz/miniz_tdef.c"
+        "miniz/miniz_zip.c"
 )
 
 idf_component_register(
@@ -25,6 +28,7 @@ idf_component_register(
     REQUIRES
         nvs_flash
         esp_timer
+        esp_wifi
 )
 
 lvgl_port_create_c_image("images/esp_logo.png" "images/" "ARGB8888" "NONE")

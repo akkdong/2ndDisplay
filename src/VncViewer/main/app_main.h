@@ -111,7 +111,7 @@ struct vnc_app_s
 /**
  * 
  */
-void vnc_app_init();
+vnc_app_t* vnc_app_init();
 
 
 /**

@@ -152,6 +152,7 @@ static void vnc_client_task(void* param)
     vnc_client_t* client = (vnc_client_t*)param;
     vnc_app_t* app = client->app;
 
+    ESP_LOGI(TAG, "connect: %s#%u", app->server_addr, app->server_port);
     if (vnc_client_connect(client, app->server_addr, app->server_port, 5000))
     {
         vnc_app_send_event(app, VNC_SERVER_CONNECTED, 0, 0, 0);
@@ -171,6 +172,7 @@ static void vnc_client_task(void* param)
     }
     else
     {
+        ESP_LOGE(TAG, "Failed connection");
         vnc_app_send_event(app, VNC_SERVER_DISCONNECTED, -1, -1, -1);
     }
 
@@ -231,7 +233,9 @@ bool vnc_client_connect(vnc_client_t* client, const char* host, uint16_t port, i
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr(host);
 
-    if (connect(client->fd, (const struct sockaddr *)&addr, sizeof(addr)) < 0 && errno != EINPROGRESS && errno != EINTR) 
+    int ret = connect(client->fd, (const struct sockaddr *)&addr, sizeof(addr));
+    ESP_LOGI(TAG, "connect return %d, errno(%d)", ret, errno);
+    if (ret < 0 && errno != EINPROGRESS && errno != EINTR) 
     {
         closesocket(client->fd);
         client->fd = INVALID_SOCKET;
@@ -694,7 +698,7 @@ void vnc_client_run(vnc_client_t* client)
 #if 1
     uint8_t fb_req_full[] = 
     { 
-        3, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+        3, 1, 0, 0, 0, 0, 0, 0, 0, 0 
     };
 
     fb_req_full[6] = (client->fbw >> 8) & 0xFF;

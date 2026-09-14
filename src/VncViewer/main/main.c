@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
+#include "esp_netif.h"
 #include "nvs_flash.h"
 
 #include "sdkconfig.h"
@@ -74,14 +75,14 @@ static int rssi_to_percentage_linear(int rssi) {
     return 2 * (rssi + 100);
 }
 
-static void print_scan_result()
+static void print_scan_result(vnc_app_t* app)
 {
     uint16_t number = 0;
     esp_wifi_scan_get_ap_num(&number);
     
     if (number == 0) {
         ESP_LOGW(TAG, "발견된 AP가 없습니다.");
-        vnc_log_append(g_scrn, "AP was not found.\n");
+        //vnc_log_append(g_scrn, "AP was not found.\n");
         return;
     }
 
@@ -92,10 +93,12 @@ static void print_scan_result()
         for (int i = 0; i < number; i++) {
             ESP_LOGI(TAG, "SSID %s, RSSI: %d, Auth: %d",
                 ap_info[i].ssid, ap_info[i].rssi, ap_info[i].authmode);
+            /*
             vnc_log_printf(g_scrn, "[%s] %d%%, %s\n",
                 ap_info[i].ssid, 
                 rssi_to_percentage_linear(ap_info[i].rssi), 
                 get_auth_mode_name(ap_info[i].authmode));
+            */
         }
     }
     free(ap_info);
@@ -106,7 +109,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         ESP_LOGI(TAG, "Wi-Fi 백그라운드 스캔 완료! 데이터를 가져옵니다.");
-        print_scan_result();        
+        print_scan_result(0);        
     }
 }
 
@@ -190,7 +193,7 @@ void print_assigned_ip()
             
             // IP 주소가 0.0.0.0이 아니라면 할당 완료된 상태
             if (ip_info.ip.addr != 0) {
-                
+                //vnc_app_send_event(app, NETWORK_CONNECTED, ip_info.ip.addr, 0, 0);
             }
         }
     }    
@@ -198,49 +201,62 @@ void print_assigned_ip()
 }
 
 
+static int retry = 5;
 
 static void wifi_and_ip_event_handler(void* arg, esp_event_base_t event_base,
                                       int32_t event_id, void* event_data)
 {
+    vnc_app_t* app = (vnc_app_t *)arg;
+
     if (event_base == WIFI_EVENT) {
         switch (event_id) {
             case WIFI_EVENT_STA_START:
-                vnc_log_append(g_scrn, "WiFi started\n");
+                //vnc_log_append(g_scrn, "WiFi started\n");
                 // Wi-Fi 가동 시작됨
+                /*
                 if (has_saved_credentials()) {
                     // 저장된 정보가 있다면 호스트/슬레이브 드라이버가 자동으로 연결을 시도함
                     g_wifi_state = WIFI_STATE_CONNECTING;
                     ESP_LOGI("WIFI", "저장된 접속 정보가 있어 자동으로 연결을 시도합니다...");
-                    vnc_log_append(g_scrn, "  --> connecting...\n");
+                    //vnc_log_append(g_scrn, "  --> connecting...\n");
                 } else {
                     g_wifi_state = WIFI_STATE_DISCONNECTED;
                     ESP_LOGI("WIFI", "저장된 접속 정보가 없습니다. 대기 상태.");                    
-                    vnc_log_append(g_scrn, "  --> standby\n");
+                    //vnc_log_append(g_scrn, "  --> standby\n");
 
                     //
                     wifi_scan_config_t scan_config = { .show_hidden = true };
                     esp_wifi_scan_start(&scan_config, false);
-                    vnc_log_append(g_scrn, "Scan started...\n");
+                    //vnc_log_append(g_scrn, "Scan started...\n");
                 }
+                */
+                ESP_LOGI(TAG, "WiFi STA statrted! try connect...");
+                esp_wifi_connect();
                 break;
 
             case WIFI_EVENT_STA_CONNECTED:
                 // AP와 링크는 연결되었으나 아직 IP는 없는 상태
                 g_wifi_state = WIFI_STATE_CONNECTING; 
-                vnc_log_append(g_scrn, "WiFi connected\n");
+                //vnc_log_append(g_scrn, "WiFi connected\n");
+                ESP_LOGI(TAG, "WiFi STA connected!");
                 break;
 
             case WIFI_EVENT_STA_DISCONNECTED:
                 // 연결이 끊겼거나 실패함
                 g_wifi_state = WIFI_STATE_DISCONNECTED;
-                ESP_LOGW("WIFI", "Wi-Fi 연결 해제됨 (또는 연결 실패)");
-                vnc_log_append(g_scrn, "WiFi diconnected\n");
+                ESP_LOGW(TAG, "Wi-Fi 연결 해제됨 (또는 연결 실패)");
+                //vnc_log_append(g_scrn, "WiFi diconnected\n");
+                if (retry-- > 0)
+                {
+                    ESP_LOGI(TAG, "WiFi reconnect");
+                    esp_wifi_connect();
+                }
                 break;
                 
             case WIFI_EVENT_SCAN_DONE:
-                ESP_LOGI("WIFI", "스캔 완료 이벤트 수신");
-                vnc_log_append(g_scrn, "Scan completed\n");
-                print_scan_result();
+                ESP_LOGI(TAG, "스캔 완료 이벤트 수신");
+                //vnc_log_append(g_scrn, "Scan completed\n");
+                print_scan_result(app);
                 break;
         }
     } 
@@ -248,7 +264,10 @@ static void wifi_and_ip_event_handler(void* arg, esp_event_base_t event_base,
         if (event_id == IP_EVENT_STA_GOT_IP) {
             // IP까지 완벽하게 할당받음
             g_wifi_state = WIFI_STATE_CONNECTED;
-            ESP_LOGI("WIFI", "IP 할당 완료. 네트워크 안정화 상태.");
+            ESP_LOGI(TAG, "IP 할당 완료. 네트워크 안정화 상태.");
+
+            //bool is_up = esp_netif_is_up(c6_netif);
+            //ESP_LOGI("NET", "Netif is UP: %s", is_up ? "YES" : "NO");
 
             char ip[16] = { 0 };
             esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
@@ -257,15 +276,16 @@ static void wifi_and_ip_event_handler(void* arg, esp_event_base_t event_base,
                 esp_netif_ip_info_t ip_info;
                 if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) 
                     snprintf(ip, sizeof(ip), IPSTR, IP2STR(&ip_info.ip));
-            }
 
-            vnc_log_printf(g_scrn, "Got IP: %s\n", ip);
+                vnc_app_send_event(app, NETWORK_CONNECTED, ip_info.ip.addr, 0, 0);
+                vnc_log_printf(app->scrn, "Got IP: %s\n", ip);
+            }
 
 
             //
-            wifi_scan_config_t scan_config = { .show_hidden = true };
-            esp_wifi_scan_start(&scan_config, false);
-            vnc_log_append(g_scrn, "Scan Started...\n");
+            //wifi_scan_config_t scan_config = { .show_hidden = true };
+            //esp_wifi_scan_start(&scan_config, false);
+            //vnc_log_append(app->scrn, "Scan Started...\n");
         }
     }
 }
@@ -300,6 +320,198 @@ static esp_err_t nvs_init()
 }
 
 
+#define CONFIG_EH_EXAMPLE_WIFI_COUNTRY          "KR"
+#define CONFIG_EH_EXAMPLE_WIFI_MAXIMUM_RETRY    6
+
+/* --- STA PHY knobs: one small setter per concern (each a no-op when its knob
+ * isn't selected), a read-back reporter, and an orderer. Applied between
+ * esp_wifi_start() and connect; all RPC-forwarded to the CP. --- */
+
+/* Regulatory country — gates which channels (esp. 5 GHz) are legal. Empty string
+ * keeps the CP default. Needs init only; non-fatal on an unsupported code. */
+static void sta_set_country(void)
+{
+    if (!CONFIG_EH_EXAMPLE_WIFI_COUNTRY[0])
+        return;
+    esp_err_t rc = esp_wifi_set_country_code(CONFIG_EH_EXAMPLE_WIFI_COUNTRY, true);
+    if (rc != ESP_OK)
+        ESP_LOGW(TAG, "set_country_code(%s) not applied: %s",
+                 CONFIG_EH_EXAMPLE_WIFI_COUNTRY, esp_err_to_name(rc));
+}
+
+/* Band select — dual-band CP (e.g. C5) comes up 5 GHz-only, so set before connect.
+ * MUST run after esp_wifi_start() (else ESP_ERR_WIFI_NOT_STARTED). */
+static void sta_set_band(void)
+{
+#if CONFIG_SLAVE_SOC_WIFI_SUPPORT_5G
+    ESP_ERROR_CHECK(esp_wifi_set_band_mode(EH_EXAMPLE_WIFI_BAND_MODE));
+#endif
+}
+
+/* PHY protocol (11b/g/n/ax). Set BEFORE bandwidth — HT40 requires 11n, and 11AX
+ * caps the single-band set_bandwidth at HT20, so a 40 MHz test pins "up to 11n".
+ * Default (knob unset) leaves the CP's max protocol. Non-fatal. */
+static void sta_set_protocol(void)
+{
+#ifdef EH_EXAMPLE_WIFI_PROTO
+    esp_err_t rc = esp_wifi_set_protocol(WIFI_IF_STA, EH_EXAMPLE_WIFI_PROTO);
+    if (rc != ESP_OK)
+        ESP_LOGW(TAG, "set_protocol(0x%02x) not applied: %s",
+                 (unsigned)EH_EXAMPLE_WIFI_PROTO, esp_err_to_name(rc));
+    else
+        ESP_LOGI(TAG, "STA protocol set to 0x%02x", (unsigned)EH_EXAMPLE_WIFI_PROTO);
+#endif
+}
+
+/* Fixed 20/40 MHz width for throughput characterization. Must run after band is
+ * selected. Invalid under AUTO band (ESP_ERR_NOT_SUPPORTED → use set_bandwidths);
+ * on 11AX/AC only HT20 is settable. Non-fatal — falls back to negotiated width. */
+static void sta_set_bandwidth(void)
+{
+#ifdef EH_EXAMPLE_WIFI_BW
+    esp_err_t rc;
+#if CONFIG_EH_EXAMPLE_WIFI_BAND_AUTO
+    /* AUTO (2.4G+5G): the singular set_bandwidth is ESP_ERR_NOT_SUPPORTED, so use
+     * the per-band plural API — apply the chosen width to both bands. */
+    wifi_bandwidths_t bws = { .ghz_2g = EH_EXAMPLE_WIFI_BW, .ghz_5g = EH_EXAMPLE_WIFI_BW };
+    rc = esp_wifi_set_bandwidths(WIFI_IF_STA, &bws);
+#else
+    /* Single band: the plain per-interface API (note: 11AX/AC only accepts HT20). */
+    rc = esp_wifi_set_bandwidth(WIFI_IF_STA, EH_EXAMPLE_WIFI_BW);
+#endif
+    if (rc != ESP_OK)
+        ESP_LOGW(TAG, "set bandwidth not applied: %s (negotiated width kept)",
+                 esp_err_to_name(rc));
+    else
+        ESP_LOGI(TAG, "STA channel width pinned to HT%s",
+                 EH_EXAMPLE_WIFI_BW == WIFI_BW40 ? "40" : "20");
+#endif
+}
+
+/* Read the knobs back and report the effective PHY in one line — the gets can
+ * differ from the sets (AP-negotiated width, or a CP that lacks a getter). */
+static void sta_report_phy(void)
+{
+    char cc[4] = "?";
+    wifi_band_mode_t bm = 0;
+    (void)esp_wifi_get_country_code(cc);
+    bool have_bm = (esp_wifi_get_band_mode(&bm) == ESP_OK);
+
+    /* Choose the getter by the RUNTIME band, not a compile-time guess: the
+     * singular get_bandwidth is ESP_ERR_NOT_SUPPORTED under AUTO (2.4G+5G), so
+     * the per-band plural must be used there. (Compile-time selection breaks
+     * when the effective band differs from Kconfig — e.g. band-set gated out.) */
+    char wbuf[20] = "n/a";
+    if (have_bm && bm == WIFI_BAND_MODE_AUTO) {
+        wifi_bandwidths_t bws = { 0 };
+        if (esp_wifi_get_bandwidths(WIFI_IF_STA, &bws) == ESP_OK)
+            snprintf(wbuf, sizeof(wbuf), "2G:HT%s/5G:HT%s",
+                     bws.ghz_2g == WIFI_BW40 ? "40" : "20",
+                     bws.ghz_5g == WIFI_BW40 ? "40" : "20");
+    } else {
+        wifi_bandwidth_t bw = 0;
+        if (esp_wifi_get_bandwidth(WIFI_IF_STA, &bw) == ESP_OK)
+            snprintf(wbuf, sizeof(wbuf), "HT%s", bw == WIFI_BW40 ? "40" : "20");
+    }
+    char pbuf[12] = "n/a";
+    uint8_t proto = 0;
+    if (esp_wifi_get_protocol(WIFI_IF_STA, &proto) == ESP_OK)
+        snprintf(pbuf, sizeof(pbuf), "0x%02x", proto);
+
+    ESP_LOGI(TAG, "STA PHY effective: country=%s band=%s proto=%s width=%s", cc,
+             !have_bm ? "n/a" :
+                 (bm == WIFI_BAND_MODE_5G_ONLY ? "5G" :
+                  bm == WIFI_BAND_MODE_AUTO    ? "AUTO" : "2G"),
+             pbuf, wbuf);
+}
+
+/* Order matters: country (region) → band → protocol → width, then read-back
+ * (protocol before width: HT40 needs 11n). */
+static void apply_sta_phy_cfg(void)
+{
+    sta_set_country();
+    sta_set_band();
+    sta_set_protocol();
+    sta_set_bandwidth();
+    sta_report_phy();
+}
+
+
+#include "eh_host_port_sync.h"
+typedef eh_host_port_sem_t *eh_ex_sem_t;
+#define EH_EX_SEM_CREATE()    eh_host_port_sem_create()
+#define EH_EX_SEM_POST(s)     eh_host_port_sem_post(s)
+#define EH_EX_SEM_WAIT(s)     eh_host_port_sem_wait_ms((s), EH_HOST_PORT_WAIT_FOREVER)
+#define EH_EX_SEM_DESTROY(s)  eh_host_port_sem_destroy(s)
+
+static eh_ex_sem_t         s_got_ip_sem = NULL;
+static int                 s_retry_num = 0;
+static bool                s_handlers_registered;
+
+/* Human-readable disconnect reason + an actionable hint — the silent stall at
+ * STA_START is the worst UX; surfacing the reason tells the user what to fix. */
+static const char *disc_reason_str(uint8_t r)
+{
+    switch (r) {
+    case WIFI_REASON_NO_AP_FOUND:
+        return "NO_AP_FOUND — SSID not seen; check the SSID and the band "
+               "(2.4 vs 5 GHz: set CONFIG_EH_EXAMPLE_WIFI_BAND_*)";
+    case WIFI_REASON_AUTH_FAIL:
+    case WIFI_REASON_HANDSHAKE_TIMEOUT:
+        return "AUTH/handshake — wrong password or auth mode";
+    case WIFI_REASON_ASSOC_FAIL:
+        return "ASSOC_FAIL — AP rejected association";
+    case WIFI_REASON_BEACON_TIMEOUT:
+        return "BEACON_TIMEOUT — weak signal / AP out of range";
+    default:
+        return "see wifi_err_reason_t";
+    }
+}
+
+static void on_disconnect(void *arg, esp_event_base_t base,
+                          int32_t id, void *event_data)
+{
+    (void)arg; (void)base; (void)id;
+    wifi_event_sta_disconnected_t *e = (wifi_event_sta_disconnected_t *)event_data;
+    uint8_t reason = e ? e->reason : 0;
+    s_retry_num++;
+    if (s_retry_num > CONFIG_EH_EXAMPLE_WIFI_MAXIMUM_RETRY) {
+        ESP_LOGE(TAG, "connect FAILED after %d tries — reason %u: %s",
+                 CONFIG_EH_EXAMPLE_WIFI_MAXIMUM_RETRY, reason, disc_reason_str(reason));
+        if (s_got_ip_sem) EH_EX_SEM_POST(s_got_ip_sem);
+        return;
+    }
+    ESP_LOGW(TAG, "disconnected (reason %u: %s) — retry %d/%d",
+             reason, disc_reason_str(reason),
+             s_retry_num, CONFIG_EH_EXAMPLE_WIFI_MAXIMUM_RETRY);
+    esp_err_t err = esp_wifi_connect();
+    if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_STARTED) {
+        ESP_ERROR_CHECK(err);
+    }
+}
+
+/* Association succeeded — make success visible (DHCP then fires automatically). */
+static void on_connected(void *arg, esp_event_base_t base,
+                         int32_t id, void *event_data)
+{
+    (void)arg; (void)base; (void)id;
+    wifi_event_sta_connected_t *e = (wifi_event_sta_connected_t *)event_data;
+    if (e)
+        ESP_LOGI(TAG, "associated to \"%.*s\" ch %u — waiting for DHCP (auto)",
+                 e->ssid_len, (const char *)e->ssid, e->channel);
+}
+
+static void on_got_ip(void *arg, esp_event_base_t base,
+                      int32_t id, void *event_data)
+{
+    (void)arg; (void)base; (void)id;
+    ip_event_got_ip_t *e = (ip_event_got_ip_t *)event_data;
+    ESP_LOGI(TAG, "got IPv4 " IPSTR, IP2STR(&e->ip_info.ip));
+    s_retry_num = 0;
+    if (s_got_ip_sem) EH_EX_SEM_POST(s_got_ip_sem);
+}
+
+
 
 
 /**
@@ -310,13 +522,50 @@ void app_main(void)
     // Initialize NVS
     nvs_init();
 
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_LOGI(TAG, "init ok");
+
+
+    esp_netif_t* netif = esp_netif_create_default_wifi_sta();
+
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_CONNECTED, on_connected, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, on_disconnect, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_got_ip, NULL));
+
+
+    wifi_config_t wcfg = { 
+        .sta = {
+            .ssid = "nauty24",
+            .password = "homesweethome",
+            .threshold = {
+                .authmode = WIFI_AUTH_WPA2_PSK,
+            }
+        }
+    };
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wcfg));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    apply_sta_phy_cfg();
+
+
+     esp_err_t cerr = esp_wifi_connect();
+    if (cerr != ESP_OK && cerr != ESP_ERR_WIFI_CONN)
+        ESP_ERROR_CHECK(cerr);
+
+
     // Initialize VNC application
-    vnc_app_init();
+    vnc_app_t* app = vnc_app_init();
 
     // turn on backlight: brightness 30%
     bsp_display_brightness_set(30);  
 
-#if 1
+#if 0
     //
     // Discovery WIFI
     //
@@ -326,21 +575,24 @@ void app_main(void)
     // 네트워크 인터페이스 및 이벤트 루프 초기화
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    /*
+    //
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_and_ip_event_handler,
-                                                        NULL,
+                                                        app,
                                                         NULL));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, 
                                                         ESP_EVENT_ANY_ID, 
                                                         &wifi_and_ip_event_handler, 
-                                                        NULL, 
+                                                        app, 
                                                         NULL));
-    */
+    //
     // ESP-Hosted 드라이버가 초기화된 후 생성된 netif를 바인딩합니다.
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
     assert(sta_netif);
+
+    // LwIP의 기본 라우팅 경로로 강제 지정
+    esp_netif_set_default_netif(sta_netif);
 
     // Wi-Fi 초기화 (Hosted 모드 설정 반영)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -353,17 +605,17 @@ void app_main(void)
      * 
     // method1
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));    
-
+    */
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = "",
-            .password = "",
+            .ssid = "nauty24",
+            .password = "homesweethome",
         },
     };
 
     // method2: 빈 설정을 명시적으로 주입
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    */
+
     ESP_ERROR_CHECK(esp_wifi_start());
     //esp_wifi_sconnect()
     //esp_wifi_disconnect();

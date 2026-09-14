@@ -162,7 +162,6 @@ static void show_wifi_popup(vnc_wifi_popup_t* popup)
     lv_obj_set_style_border_width(mbox, 2, 0);
     lv_obj_set_style_radius(mbox, 16, 0);
 
-    /*
     // layout content-area
     lv_obj_t * content = lv_msgbox_get_content(mbox);
     lv_obj_set_flex_flow(content, LV_FLEX_FLOW_COLUMN);
@@ -233,7 +232,6 @@ static void show_wifi_popup(vnc_wifi_popup_t* popup)
     create_wifi_item(block_available, "AP 5G", NULL, NULL);
     create_wifi_item(block_available, "AP 2G", NULL, NULL);
     create_wifi_item(block_available, "AP GiGA", "Strong signal", NULL);
-    */
 }
 
 

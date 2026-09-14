@@ -73,7 +73,7 @@ vnc_app_t vnc_app =
     .wifi_pass = { 0 },
 
     .server_addr = "192.168.219.201", // { 0 },
-    .server_port = 5900,
+    .server_port = 5901,
     .server_pass = "password", // { 0 },
 
     .state = APP_STATE_INIT,
@@ -316,7 +316,7 @@ static void app_task(void* param)
 //
 //
 
-void vnc_app_init()
+vnc_app_t* vnc_app_init()
 {
     // Initialize BSP/LVGL display & Start LVGL Task
     vnc_app.disp = vnc_display_start();
@@ -340,4 +340,6 @@ void vnc_app_init()
 
     // start main-task
     xTaskCreate(app_task, "main", 8 * 1024, &vnc_app, tskIDLE_PRIORITY + 2, NULL);
+
+    return &vnc_app;
 }
