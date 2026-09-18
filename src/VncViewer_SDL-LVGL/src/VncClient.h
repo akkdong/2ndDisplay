@@ -18,12 +18,12 @@
     #include <arpa/inet.h>
     #include <unistd.h>
     #include <netinet/in.h>
-#endif
+    #include <errno.h>
+    
+    #define INVALID_SOCKET      (-1)
+    #define closesocket(s)      close(s)
 
-#ifdef _WIN32
-    #define close_socket(s) closesocket(s)
-#else
-    #define close_socket(s) close(s)
+    typedef int SOCKET;
 #endif
 
 
@@ -70,7 +70,7 @@ public:
 public:
     bool connectToServer(const char* addr, unsigned short port, const char* pass);
     void disconnect();
-    void close();
+    void reset();
 
 protected:
     static int SDLCALL ClientProc(void* data);

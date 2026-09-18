@@ -1,6 +1,7 @@
 // zlib_inflate.c
 //
 
+#include <limits.h>
 #include "zlib_inflate.h"
 
 

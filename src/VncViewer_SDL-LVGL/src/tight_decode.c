@@ -1,6 +1,8 @@
 // tight_decode.c
 //
 
+#include <stdio.h>
+#include <stdint.h>
 #include "tight_decode.h"
 
 

@@ -219,7 +219,7 @@ void VncApplication::processClientEvent(Uint32 code, void* data1, void* data2)
         LV_LOG_INFO("VncClient::EVENT_CLIENT_FINISHED\n");
         if (m_client)
         {
-            m_client->close();
+            m_client->reset();
             delete m_client;
             m_client = nullptr;
         }
@@ -235,7 +235,7 @@ void VncApplication::processClientEvent(Uint32 code, void* data1, void* data2)
         LV_LOG_INFO("client error: %d\n", (int)(uint64_t)data1); // errno = (int)data1
         if (m_client)
         {
-            m_client->close();
+            m_client->reset();
             delete m_client;
             m_client = nullptr;
         }
@@ -291,7 +291,7 @@ void VncApplication::setupSignal()
 #else
     // POSIX(Linux/macOS) Environment
     struct sigaction sa;
-    sa.sa_handler = sigint_handler;
+    sa.sa_handler = signal_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sigaction(SIGINT, &sa, NULL);

@@ -96,7 +96,7 @@ void VncScreen::setConnectInfo(const char* addr, unsigned short port, const char
         if (obj_port && m_port > 0)
         {
             char port_str[16];
-            itoa(m_port, port_str/*, sizeof(port_str)*/, 10);
+            snprintf(port_str, sizeof(port_str), "%d", m_port);
             lv_textarea_set_text(obj_port, port_str);
         }
 

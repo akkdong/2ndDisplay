@@ -72,9 +72,9 @@ void VncClient::disconnect()
     }
 }
 
-void VncClient::close()
+void VncClient::reset()
 {
-    LV_LOG_INFO("VncClient::close()\n");
+    LV_LOG_INFO("VncClient::reset()\n");
     if (m_sock != INVALID_SOCKET)
     {
         closesocket(m_sock);
@@ -347,7 +347,7 @@ void* custom_zalloc(void* opaque, size_t items, size_t size) {
     void* ptr = malloc(items * size);
     #endif
     if (!ptr) {
-        LV_LOG_ERROR("custom_zalloc(%u) failed: \n", size * items);
+        LV_LOG_ERROR("custom_zalloc(%lu) failed: \n", size * items);
     }
     return ptr;
 }
