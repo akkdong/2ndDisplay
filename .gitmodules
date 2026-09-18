@@ -7,3 +7,6 @@
 [submodule "ref/Virtual-Display-Driver"]
 	path = ref/Virtual-Display-Driver
 	url = https://github.com/itsmikethetech/Virtual-Display-Driver.git
+[submodule "src/VncViewer_SDL-LVGL/lvgl"]
+	path = src/VncViewer_SDL-LVGL/lvgl
+	url = https://github.com/lvgl/lvgl.git

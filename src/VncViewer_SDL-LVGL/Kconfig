@@ -1,0 +1,7 @@
+mainmenu "LVGL Static Library Project Configuration"
+
+menu "Application Settings"
+endmenu
+
+source "lvgl/Kconfig"
+
